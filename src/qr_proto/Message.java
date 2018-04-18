@@ -4,8 +4,13 @@ public class Message {
   private String message;
 
   public Message(String message) {
+    this(message, false);
+  }
+
+  public Message(String message, boolean addEnd) {
     this.message = message;
-    this.message += "\\0";
+    if(addEnd)
+      this.message += "\\0";
   }
 
   public String removeSubstring(int beginIndex, int endIndex) {
@@ -24,5 +29,10 @@ public class Message {
 
   public String getMessage() {
     return message;
+  }
+
+  @Override
+  public String toString() {
+    return getMessage();
   }
 }

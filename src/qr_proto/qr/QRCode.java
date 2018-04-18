@@ -19,45 +19,53 @@ public class QRCode {
   }
 
   public static final QRCode
-      SYN = new QRCode(0, new Message("\\m SYN")),
-      ACK = new QRCode(0, new Message("\\m ACK")),
-      SCK = new QRCode(0, new Message("\\m SCK")),
-      FIN = new QRCode(0, new Message("\\m FIN"));
+      SYN = new QRCode(0, new Message("\\m SYN", true)),
+      ACK = new QRCode(0, new Message("\\m ACK", true)),
+      SCK = new QRCode(0, new Message("\\m SCK", true)),
+      FIN = new QRCode(0, new Message("\\m FIN", true));
 
-  private BitMatrix bitMatrix;
+  private int sequenceNumber;
+  private Message content;
+  private AcknowledgementMessage acknowledgementMessage;
 
-  public  QRCode(int sequenceNumber, Message content){
+  public QRCode(int sequenceNumber, Message content){
     this (sequenceNumber, content, AcknowledgementMessage.CONTINUE);
   }
 
-  public QRCode(int sequenceNumber, Message content, AcknowledgementMessage ackmessage) {
-    String qrmessage = "";
-    int size = 250; // TODO: automatic size calculation.
+  public QRCode(int sequenceNumber, Message content, AcknowledgementMessage acknowledgementMessage) {
+    this.sequenceNumber = sequenceNumber;
+    this.content = content;
+    this.acknowledgementMessage = acknowledgementMessage;
+  }
+
+  public BitMatrix generateBitMatrix(int size) {
+    String qrMessage = "";
 
     Map<EncodeHintType, Object> hintMap = new EnumMap<EncodeHintType, Object>(EncodeHintType.class);
     hintMap.put(EncodeHintType.CHARACTER_SET, "UTF-8");
-    hintMap.put(EncodeHintType.MARGIN, 1); // defaults to 4
+    hintMap.put(EncodeHintType.MARGIN, 0); // defaults to 4
     hintMap.put(EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.L);
 
-    qrmessage += Base64.getEncoder().encodeToString(ByteBuffer.allocate(4).putInt(sequenceNumber).array());
-    qrmessage += content;
-    switch (ackmessage) {
+    qrMessage += Base64.getEncoder().encodeToString(ByteBuffer.allocate(4).putInt(sequenceNumber).array()); // adds 8 characters
+    qrMessage += content;
+    switch (acknowledgementMessage) {
       case CONTINUE:
-        qrmessage += "\\c";
+        qrMessage += "\\c";
         break;
       case END:
-        qrmessage += "\\e";
+        qrMessage += "\\e";
         break;
       case END_OF_ACK:
-        qrmessage += "\\a";
+        qrMessage += "\\a";
         break;
     }
-    qrmessage += Base64.getEncoder().encodeToString(new byte[]{checksum(content.getMessage())});
+    qrMessage += Base64.getEncoder().encodeToString(new byte[]{checksum(content.getMessage())}); // adds 4 characters
 
     try {
-      bitMatrix = (new QRCodeWriter()).encode(qrmessage, BarcodeFormat.QR_CODE, size, size, hintMap);
+      return (new QRCodeWriter()).encode(qrMessage, BarcodeFormat.QR_CODE, size, size, hintMap);
     } catch(WriterException e) {
       e.printStackTrace();
+      return null;
     }
   }
 
@@ -72,9 +80,5 @@ public class QRCode {
       }
     }
     return checksum;
-  }
-
-  public BitMatrix getBitMatrix() {
-    return bitMatrix;
   }
 }

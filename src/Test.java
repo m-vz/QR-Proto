@@ -6,8 +6,10 @@ public class Test {
     private TestWindow window;
 
     private void startTest() {
-      window = new TestWindow();
-      qrProto = new QRProto(window.getQRProtoPanel());
+      qrProto = new QRProto();
+      window = new TestWindow(qrProto.getQRProtoPanel());
+
+      qrProto.getSocket().connect();
     }
 
     public static void main(String[] args) {

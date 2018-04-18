@@ -10,18 +10,16 @@ import java.awt.*;
 
 public class TestWindow extends JFrame {
   private WebcamPanel webcamPanel;
-  private JTextArea testPanel;
   private QRProtoPanel qrProtoPanel;
 
-  public TestWindow() throws HeadlessException {
+  public TestWindow(QRProtoPanel qrProtoPanel) throws HeadlessException {
     super();
-
 
     setLayout(new FlowLayout());
     setTitle("QR-Proto");
     setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
 
-    Dimension size = WebcamResolution.QVGA.getSize();
+    Dimension size = WebcamResolution.VGA.getSize();
     Webcam webcam = Webcam.getWebcams().get(0);
     webcam.setViewSize(size);
 
@@ -29,15 +27,10 @@ public class TestWindow extends JFrame {
     webcamPanel.setPreferredSize(size);
     webcamPanel.setFPSDisplayed(true);
 
-    qrProtoPanel = new QRProtoPanel(size.height);
-
-    testPanel = new JTextArea();
-    testPanel.setEditable(false);
-    testPanel.setPreferredSize(size);
+    this.qrProtoPanel = qrProtoPanel;
 
     add(webcamPanel);
     add(qrProtoPanel);
-    add(testPanel);
 
     pack();
     setVisible(true);
@@ -45,10 +38,6 @@ public class TestWindow extends JFrame {
 
   public WebcamPanel getWebcamPanel() {
     return webcamPanel;
-  }
-
-  public JTextArea getTestPanel() {
-    return testPanel;
   }
 
   public QRProtoPanel getQRProtoPanel() {
