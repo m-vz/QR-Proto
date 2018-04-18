@@ -1,4 +1,4 @@
-/**
+package qr_proto.qr; /**
  * Created by Aeneas on 14.04.18.
  * Code template used from: https://crunchify.com/java-simple-qr-code-generator-example/
  */

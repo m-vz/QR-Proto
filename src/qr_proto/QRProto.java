@@ -1,10 +1,9 @@
-//package com.github.sarxos.example1;
+package qr_proto;//package com.github.sarxos.example1;
 
 
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.image.BufferedImage;
-import java.util.StringJoiner;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
@@ -22,9 +21,11 @@ import com.google.zxing.NotFoundException;
 import com.google.zxing.Result;
 import com.google.zxing.client.j2se.BufferedImageLuminanceSource;
 import com.google.zxing.common.HybridBinarizer;
+import qr_proto.gui.ImagePanel;
+import qr_proto.qr.QRGenerator;
 
 
-public class WebcamQRCodeEx extends JFrame implements Runnable, ThreadFactory {
+public class QRProto extends JFrame implements Runnable, ThreadFactory {
 
   private static final long serialVersionUID = 6441489157408381878L;
 
@@ -42,7 +43,7 @@ public class WebcamQRCodeEx extends JFrame implements Runnable, ThreadFactory {
   private String filetype = "png";
   private String filename = "2";
 
-  public WebcamQRCodeEx() {
+  public QRProto() {
     super();
 
     setLayout(new FlowLayout());
@@ -122,9 +123,5 @@ public class WebcamQRCodeEx extends JFrame implements Runnable, ThreadFactory {
     Thread t = new Thread(r, "example-runner");
     t.setDaemon(true);
     return t;
-  }
-
-  public static void main(String[] args) {
-    new WebcamQRCodeEx();
   }
 }
