@@ -3,22 +3,15 @@
  * Code template used from: https://crunchify.com/java-simple-qr-code-generator-example/
  */
 
-import com.google.zxing.BinaryBitmap;
-import com.google.zxing.LuminanceSource;
-import com.google.zxing.MultiFormatReader;
-import com.google.zxing.NotFoundException;
-import com.google.zxing.Result;
-import com.google.zxing.client.j2se.BufferedImageLuminanceSource;
-import com.google.zxing.common.HybridBinarizer;
 import java.awt.Color;
 import java.awt.Graphics2D;
-import java.awt.SystemColor;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.util.EnumMap;
 import java.util.Map;
 
+import java.util.Random;
 import javax.imageio.ImageIO;
 
 import com.google.zxing.BarcodeFormat;
@@ -48,6 +41,8 @@ public class QRGenerator {
   }
 
   public static void makeQR(String _message, String _filename) {
+    long time = System.currentTimeMillis();
+
 
     String filename = _filename;
     String fileType = "png";
@@ -57,7 +52,7 @@ public class QRGenerator {
             + fileType;
     int size = 250;
 
-    String checkMessage = _message + ";" + Integer.toString(checksum(_message));
+    String checkMessage = generateMessage(_message, 80);
 
     File myFile = new File(filePath);
     try {
@@ -96,7 +91,8 @@ public class QRGenerator {
     } catch (IOException e) {
       e.printStackTrace();
     }
-    System.out.println("\n\nYou have successfully created QR Code.");
+    time = System.currentTimeMillis() - time;
+    System.out.println("\n\nYou have successfully created QR Code in "+ time +"ms.");
   }
 
   public static String checkMessage(String _message) {
@@ -118,6 +114,25 @@ public class QRGenerator {
     }
     return cutMessage;
 
+  }
+
+  public static String generateMessage(String _message, int _id){
+    int maxMessageSize = 2953; //QR-Code length = Binary/byte: Max. 2,953 characters (8-bit bytes) (23624 bits)
+    int port, id;
+    Random r = new Random();
+    String header = null;
+    String finalMessage = null;
+
+    port = r.nextInt(9999);
+    id = _id++;
+
+    /* Checks weather message is long enough to encode in single code */
+    if(_message.length() < maxMessageSize){
+      finalMessage += header;
+      finalMessage += _message;
+      finalMessage +=  (";" + Integer.toString(checksum(_message)));
+    }
+    return finalMessage;
   }
 
 }

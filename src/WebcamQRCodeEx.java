@@ -108,7 +108,7 @@ public class WebcamQRCodeEx extends JFrame implements Runnable, ThreadFactory {
       }
 
       if (result != null) {
-        String checkedMessage = generator.checkMessage(result.getText());
+        String checkedMessage =result.getText();// generator.checkMessage(result.getText());
         if (checkedMessage != null) {
           textarea.setText(checkedMessage);
         }
