@@ -1,18 +1,12 @@
-package qr_proto;//package com.github.sarxos.example1;
+package qr_proto;
 
-
-import java.awt.Dimension;
-import java.awt.FlowLayout;
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 
-import javax.swing.JFrame;
-import javax.swing.JTextArea;
-
 import com.github.sarxos.webcam.Webcam;
-import com.github.sarxos.webcam.WebcamPanel;
 import com.github.sarxos.webcam.WebcamResolution;
 import com.google.zxing.BinaryBitmap;
 import com.google.zxing.LuminanceSource;
@@ -21,66 +15,31 @@ import com.google.zxing.NotFoundException;
 import com.google.zxing.Result;
 import com.google.zxing.client.j2se.BufferedImageLuminanceSource;
 import com.google.zxing.common.HybridBinarizer;
-import qr_proto.gui.ImagePanel;
+import qr_proto.gui.QRProtoPanel;
+import qr_proto.qr.QRCode;
 import qr_proto.qr.QRGenerator;
 
 
-public class QRProto extends JFrame implements Runnable, ThreadFactory {
+public class QRProto implements Runnable, ThreadFactory {
+  private Webcam webcam;
+  private QRProtoPanel panel;
 
-  private static final long serialVersionUID = 6441489157408381878L;
+  private String received = "";
 
-  private Executor executor = Executors.newSingleThreadExecutor(this);
+  private boolean shouldClose = false;
 
-  private Webcam webcam = null;
-  private WebcamPanel panel = null;
-  private JTextArea textarea = null;
-  private ImagePanel imagePanel = null;
-
-  private QRGenerator generator = null;
-  private String filepath =
-      "/Users/Aeneas/Nextcloud/Studium/08. FS2018/Internet and Security/QR-Proto/img/";
-  private String message = "some message\uD83D\uDE34";
-  private String filetype = "png";
-  private String filename = "2";
-
-  public QRProto() {
-    super();
-
-    setLayout(new FlowLayout());
-    setTitle("QR-Proto");
-    setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-
-    Dimension size = WebcamResolution.QVGA.getSize();
-
-    generator.makeQR(message, filename);
+  public QRProto(QRProtoPanel panel) {
+    QRCode qrCode = QRGenerator.makeQR("some message\uD83D\uDE34");
 
     webcam = Webcam.getWebcams().get(0);
-    webcam.setViewSize(size);
 
-    panel = new WebcamPanel(webcam);
-    panel.setPreferredSize(size);
-    panel.setFPSDisplayed(true);
+    this.panel = panel;
 
-    imagePanel = new ImagePanel(filepath + filename + "." + filetype);
-    imagePanel.setPreferredSize(size);
-
-    textarea = new JTextArea();
-    textarea.setEditable(false);
-    textarea.setPreferredSize(size);
-
-    add(panel);
-    add(imagePanel);
-    add(textarea);
-
-    pack();
-    setVisible(true);
-
-    executor.execute(this);
+    Executors.newSingleThreadExecutor(this).execute(this);
   }
 
   @Override
   public void run() {
-
     do {
       try {
         Thread.sleep(100);
@@ -88,15 +47,12 @@ public class QRProto extends JFrame implements Runnable, ThreadFactory {
         e.printStackTrace();
       }
 
-      BufferedImage image = null;
+      BufferedImage image;
       Result result = null;
-      String decodedQR = null;
 
-      if (webcam.isOpen()) {
-
-        if ((image = webcam.getImage()) == null) {
+      if(webcam.isOpen()) {
+        if((image = webcam.getImage()) == null)
           continue;
-        }
 
         LuminanceSource source = new BufferedImageLuminanceSource(image);
         BinaryBitmap bitmap = new BinaryBitmap(new HybridBinarizer(source));
@@ -104,24 +60,41 @@ public class QRProto extends JFrame implements Runnable, ThreadFactory {
         try {
           result = new MultiFormatReader().decode(bitmap);
         } catch (NotFoundException e) {
-          // fall thru, it means there is no QR code in image
+          // no qr code found
         }
       }
 
       if (result != null) {
-        String checkedMessage =result.getText();// generator.checkMessage(result.getText());
-        if (checkedMessage != null) {
-          textarea.setText(checkedMessage);
-        }
-      }
+        String checkedMessage = result.getText();//QRGenerator.checkMessage(result.getText());
 
-    } while (true);
+        if (checkedMessage != null)
+          receivedMessage(checkedMessage);
+      }
+    } while(!shouldClose);
   }
 
   @Override
   public Thread newThread(Runnable r) {
-    Thread t = new Thread(r, "example-runner");
+    Thread t = new Thread(r, "qr-proto-runner");
     t.setDaemon(true);
     return t;
+  }
+
+  private void receivedMessage(String message) {
+    received = message;
+
+    System.out.println(message);
+  }
+
+  public String getReceivedMessage() {
+    return received;
+  }
+
+  QRProtoPanel getQRProtoPanel() {
+    return panel;
+  }
+
+  public void shouldClose() {
+    shouldClose = true;
   }
 }

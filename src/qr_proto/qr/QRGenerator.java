@@ -40,59 +40,19 @@ public class QRGenerator {
     return checksum;
   }
 
-  public static void makeQR(String _message, String _filename) {
+  public static QRCode makeQR(String _message) {
+    int size = 250; // TODO: automatic size calculation.
+
     long time = System.currentTimeMillis();
-
-
-    String filename = _filename;
-    String fileType = "png";
-    String filePath =
-        "/Users/Aeneas/Nextcloud/Studium/08. FS2018/Internet and Security/QR-Proto/img/" + filename
-            + "."
-            + fileType;
-    int size = 250;
 
     String checkMessage = generateMessage(_message, 80);
 
-    File myFile = new File(filePath);
-    try {
+    QRCode code = new QRCode(checkMessage, size);
 
-      Map<EncodeHintType, Object> hintMap = new EnumMap<EncodeHintType, Object>(
-          EncodeHintType.class);
-      hintMap.put(EncodeHintType.CHARACTER_SET, "UTF-8");
-
-      // Now with zxing version 3.2.1 you could change border size (white border size to just 1)
-      hintMap.put(EncodeHintType.MARGIN, 1); /* default = 4 */
-      hintMap.put(EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.L);
-
-      QRCodeWriter qrCodeWriter = new QRCodeWriter();
-      BitMatrix byteMatrix = qrCodeWriter.encode(checkMessage, BarcodeFormat.QR_CODE, size,
-          size, hintMap);
-      int width = byteMatrix.getWidth();
-      BufferedImage image = new BufferedImage(width, width,
-          BufferedImage.TYPE_INT_RGB);
-      image.createGraphics();
-
-      Graphics2D graphics = (Graphics2D) image.getGraphics();
-      graphics.setColor(Color.WHITE);
-      graphics.fillRect(0, 0, width, width);
-      graphics.setColor(Color.BLACK);
-
-      for (int i = 0; i < width; i++) {
-        for (int j = 0; j < width; j++) {
-          if (byteMatrix.get(i, j)) {
-            graphics.fillRect(i, j, 1, 1);
-          }
-        }
-      }
-      ImageIO.write(image, fileType, myFile);
-    } catch (WriterException e) {
-      e.printStackTrace();
-    } catch (IOException e) {
-      e.printStackTrace();
-    }
     time = System.currentTimeMillis() - time;
     System.out.println("\n\nYou have successfully created QR Code in "+ time +"ms.");
+
+    return code;
   }
 
   public static String checkMessage(String _message) {
