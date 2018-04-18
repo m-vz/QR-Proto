@@ -9,7 +9,7 @@ public class Test {
       qrProto = new QRProto();
       window = new TestWindow(qrProto.getQRProtoPanel());
 
-      qrProto.getSocket().connect();
+      qrProto.getSocket().sendMessage("The quick brown fox jumped over the lazy dog.");
     }
 
     public static void main(String[] args) {

@@ -2,6 +2,7 @@ package qr_proto;
 
 public class Message {
   private String message;
+  private boolean addEnd;
 
   public Message(String message) {
     this(message, false);
@@ -9,8 +10,7 @@ public class Message {
 
   public Message(String message, boolean addEnd) {
     this.message = message;
-    if(addEnd)
-      this.message += "\\0";
+    this.addEnd = addEnd;
   }
 
   public String removeSubstring(int beginIndex, int endIndex) {
@@ -21,6 +21,8 @@ public class Message {
 
   public void escape (){
     message = message.replace("\\", "\\b");
+    if(addEnd)
+      this.message += "\\0";
   }
 
   public void unescape (){
