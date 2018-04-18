@@ -1,13 +1,10 @@
 package qr_proto;
 
-import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 
 import com.github.sarxos.webcam.Webcam;
-import com.github.sarxos.webcam.WebcamResolution;
 import com.google.zxing.BinaryBitmap;
 import com.google.zxing.LuminanceSource;
 import com.google.zxing.MultiFormatReader;
@@ -65,7 +62,7 @@ public class QRProto implements Runnable, ThreadFactory {
       }
 
       if (result != null) {
-        String checkedMessage = result.getText();//QRGenerator.checkMessage(result.getText());
+        String checkedMessage = result.getText();
 
         if (checkedMessage != null)
           receivedMessage(checkedMessage);
