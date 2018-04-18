@@ -14,7 +14,6 @@ import com.google.zxing.client.j2se.BufferedImageLuminanceSource;
 import com.google.zxing.common.HybridBinarizer;
 import qr_proto.gui.QRProtoPanel;
 import qr_proto.qr.QRCode;
-import qr_proto.qr.QRGenerator;
 
 
 public class QRProto implements Runnable, ThreadFactory {
@@ -26,7 +25,7 @@ public class QRProto implements Runnable, ThreadFactory {
   private boolean shouldClose = false;
 
   public QRProto(QRProtoPanel panel) {
-    QRCode qrCode = QRGenerator.makeQR("some message\uD83D\uDE34");
+    //QRCode qrCode = QRGenerator.makeQR("some message\uD83D\uDE34");
 
     webcam = Webcam.getWebcams().get(0);
 
