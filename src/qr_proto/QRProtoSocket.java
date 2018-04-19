@@ -34,12 +34,11 @@ public class QRProtoSocket {
   private Webcam webcam;
   private Thread senderThread, receiverThread;
 
-  public QRProtoSocket() {
+  public QRProtoSocket(int panelSize) {
     messageQueue = new LinkedList<>();
     sentQRCodes = new LinkedList<>();
 
-    Dimension size = WebcamResolution.QVGA.getSize();
-    panel = new QRProtoPanel(size.height);
+    panel = new QRProtoPanel(panelSize);
 
     webcam = Webcam.getWebcams().get(0);
 
@@ -97,6 +96,8 @@ public class QRProtoSocket {
     } catch (InterruptedException e) {
       e.printStackTrace();
     }
+
+//    panel.displayNothing();
   }
 
   private void parseMessage(Message message) {
@@ -241,9 +242,7 @@ public class QRProtoSocket {
           content = content.substring(current, contentLength); // this is the remaining content that is not a complete message
 
           for(Message message: messages) {
-            System.out.println("Received message with content:\n" + message);
             message.unescape();
-            System.out.println("Unescaped content to:\n" + message);
 
             parseMessage(message);
           }

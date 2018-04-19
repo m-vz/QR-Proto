@@ -8,32 +8,44 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 
 public class QRProtoPanel extends JPanel {
-  private BufferedImage qrCodeImage = null;
+  private BufferedImage qrCodeImage;
+  private Graphics2D qrCodeGraphics;
+  private int size;
 
   public QRProtoPanel(int size) {
     super();
 
+    this.size = size;
+    this.qrCodeImage = new BufferedImage(size, size, BufferedImage.TYPE_BYTE_BINARY);
+    qrCodeImage.createGraphics();
+    this.qrCodeGraphics = (Graphics2D) qrCodeImage.getGraphics();
+
     setPreferredSize(new Dimension(size, size));
+    displayNothing();
   }
 
   public void displayQRCode(QRCode qrCode) {
-    int size = getPreferredSize().width;
     BitMatrix bitMatrix = qrCode.generateBitMatrix(size);
 
-    qrCodeImage = new BufferedImage(size, size, BufferedImage.TYPE_INT_RGB);
-    qrCodeImage.createGraphics();
-    Graphics2D graphics = (Graphics2D) qrCodeImage.getGraphics();
+    qrCodeGraphics.setColor(Color.WHITE);
+    qrCodeGraphics.fillRect(0, 0, size, size);
 
-    graphics.setColor(Color.WHITE);
-    graphics.fillRect(0, 0, size, size);
-
-    graphics.setColor(Color.BLACK);
+    qrCodeGraphics.setColor(Color.BLACK);
     for(int y = 0; y < size; y++)
       for(int x = 0; x < size; x++)
         if(bitMatrix.get(x, y))
-          graphics.fillRect(x, y, 1, 1);
+          qrCodeGraphics.fillRect(x, y, 1, 1);
 
     repaint();
+  }
+
+  public void displayNothing() {
+    qrCodeGraphics.setColor(Color.WHITE);
+    qrCodeGraphics.fillRect(0, 0, size, size);
+  }
+
+  public int getQRCodeSize() {
+    return size;
   }
 
   @Override
