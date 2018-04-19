@@ -1,16 +1,12 @@
 package qr_proto;
 
 public class Message {
+  public static final String MESSAGE_END = "\\0";
+
   private String message;
-  private boolean addEnd;
 
   public Message(String message) {
-    this(message, false);
-  }
-
-  public Message(String message, boolean addEnd) {
     this.message = message;
-    this.addEnd = addEnd;
   }
 
   public String removeSubstring(int beginIndex, int endIndex) {
@@ -20,13 +16,15 @@ public class Message {
   }
 
   public void escape (){
-    message = message.replace("\\", "\\b");
-    if(addEnd)
-      this.message += "\\0";
+    System.out.println("Escaping message content from:\n" + message);
+    message = message.replace("\\", "\\b") + MESSAGE_END;
+    System.out.println("To:\n" + message);
   }
 
   public void unescape (){
-    message = message.replace("\\b", "\\");
+    System.out.println("Unescaping message content from:\n" + message);
+    message = message.substring(message.length() - MESSAGE_END.length()).replace("\\b", "\\");
+    System.out.println("To:\n" + message);
   }
 
   public String getMessage() {

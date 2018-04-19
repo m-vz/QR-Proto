@@ -50,7 +50,7 @@ public class QRProtoSocket {
   }
 
   public void sendMessage(String message) {
-    messageQueue.add(new Message(message, true));
+    messageQueue.add(new Message(message));
   }
 
   public void connect() {
@@ -64,13 +64,9 @@ public class QRProtoSocket {
     sentQRCodes.add(qrCode);
   }
 
-  private void parseMessage(Message message) throws ParsingException {
+  private void parseMessage(Message message, int sequenceNumber, String acknowledgementMessage, byte checksum) throws ParsingException {
     String content = message.getMessage();
     int contentLength = content.length();
-
-    int sequenceNumber = ByteBuffer.wrap(Base64.getDecoder().decode(content.substring(0, 8))).getInt();
-    String ackmessage = content.substring(contentLength - 6, contentLength - 4);
-    byte checksum = Base64.getDecoder().decode(content.substring(contentLength - 4))[0];
 
     content = content.substring(8, contentLength - 6);
     contentLength = content.length();
@@ -85,13 +81,13 @@ public class QRProtoSocket {
     }
 
     if(!connected && !connecting) {
-      if(contentLength == 8/* TODO: 8 tmp, should be 6 */ && content.substring(0, 6).equals("\\m SYN")) { // connection is being established
+      if(contentLength == 6 && content.substring(0, 6).equals("\\m SYN")) { // connection is being established
         sendQRCode(QRCode.SCK);
 
         connecting = true;
       }
     } else if(connecting) {
-      if(contentLength == 8/* TODO: 8 tmp, should be 6 */ && content.substring(0, 2).equals("\\m")) { // connection message
+      if(contentLength == 6 && content.substring(0, 2).equals("\\m")) { // connection message
         String msg = content.substring(3, 6);
 
         if(msg.equals("SCK")) { // reply with ack
@@ -150,7 +146,6 @@ public class QRProtoSocket {
           }
 
           message.escape();
-
           System.out.println("Sending qr code with sequence number " + currentSequenceNumber + " and content:\n" + message);
           sendQRCode(new QRCode(currentSequenceNumber, message, QRCode.AcknowledgementMessage.END));
           synchronized(this) { currentSequenceNumber++; }
@@ -189,13 +184,32 @@ public class QRProtoSocket {
         }
 
         if(result != null) {
-          Message message = new Message(result.getText());
-          message.unescape();
-          System.out.println("Received qr code with message:\n" + message);
-          try {
-            parseMessage(message);
-          } catch(ParsingException e) {
-            e.printStackTrace();
+          String content = result.getText();
+          int contentLength = content.length();
+
+          int sequenceNumber = ByteBuffer.wrap(Base64.getDecoder().decode(content.substring(0, 8))).getInt();
+          String acknowledgementMessage = content.substring(contentLength - 6, contentLength - 4);
+          byte checksum = Base64.getDecoder().decode(content.substring(contentLength - 4))[0];
+
+          Vector<Message> messages = new Vector<>();
+          int current = 0, next;
+          while((next = content.indexOf(Message.MESSAGE_END, current)) != -1) {
+            next += Message.MESSAGE_END.length();
+            messages.add(new Message(content.substring(current, next)));
+            current = next;
+          }
+          content = content.substring(current); // this is the remaining content that is not a complete message
+
+          for(Message message: messages) {
+            System.out.println("Received message with content:\n" + message);
+            message.unescape();
+            System.out.println("Unescaped content to:\n" + message);
+
+            try {
+              parseMessage(message, sequenceNumber, acknowledgementMessage, checksum);
+            } catch(ParsingException e) {
+              e.printStackTrace();
+            }
           }
         }
       } while(!shouldClose);
