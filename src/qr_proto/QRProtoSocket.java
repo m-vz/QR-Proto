@@ -1,36 +1,35 @@
 package qr_proto;
 
-import java.awt.*;
 import java.awt.Dimension;
+import java.awt.event.ActionEvent;
 import java.awt.image.BufferedImage;
 import java.nio.ByteBuffer;
 import java.util.Base64;
 import java.util.LinkedList;
 import java.util.Vector;
-import java.util.concurrent.ThreadFactory;
 
 import com.github.sarxos.webcam.Webcam;
 import com.github.sarxos.webcam.WebcamResolution;
 import com.google.zxing.*;
 import com.google.zxing.client.j2se.BufferedImageLuminanceSource;
 import com.google.zxing.common.HybridBinarizer;
-import qr_proto.callback.ConnectedCallback;
-import qr_proto.exception.ParsingException;
 import qr_proto.gui.QRProtoPanel;
 import qr_proto.qr.QRCode;
+
+import javax.swing.*;
 
 /**
  * Created by Aeneas on 18.04.18.
  */
 public class QRProtoSocket {
   private static final int MAX_BUFFER_SIZE = 2953;
-  private static final int SENDER_SLEEP_TIME = 1000, RECEIVER_SLEEP_TIME = 1000;
+  private static final int SENDER_SLEEP_TIME = 10, RECEIVER_SLEEP_TIME = 10, DISPLAY_TIME = 1000;
 
   private volatile boolean shouldClose = false, connecting = false, connected = false;
   private volatile int currentSequenceNumber = 1;
   private LinkedList<Message> messageQueue;
   private LinkedList<QRCode> sentQRCodes;
-  private ConnectedCallback connectedCallback = null;
+  private AbstractAction connectedCallback = null;
   private QRProtoPanel panel;
   private Webcam webcam;
   private Thread senderThread, receiverThread;
@@ -55,16 +54,40 @@ public class QRProtoSocket {
     messageQueue.add(new Message(message));
   }
 
-  public void connect(ConnectedCallback callback) {
+  public void connect(AbstractAction callback) {
+    if(connected) {
+      System.err.println("Already connected.");
+      return;
+    }
+
     connectedCallback = callback;
     connecting = true;
 
     sendQRCode(QRCode.SYN);
   }
 
+  public void disconnect() {
+    if(!connected) {
+      System.err.println("Not connected.");
+      return;
+    }
+
+    connected = false;
+    messageQueue = new LinkedList<>();
+    sentQRCodes = new LinkedList<>();
+
+    sendQRCode(QRCode.FIN);
+  }
+
   private void sendQRCode(QRCode qrCode) {
     panel.displayQRCode(qrCode); // TODO: this is temporary and needs to be expanded.
     sentQRCodes.add(qrCode);
+
+    try {
+      Thread.sleep(DISPLAY_TIME);
+    } catch (InterruptedException e) {
+      e.printStackTrace();
+    }
   }
 
   private void parseMessage(Message message) {
@@ -85,7 +108,7 @@ public class QRProtoSocket {
           sendQRCode(QRCode.ACK);
 
           if(connectedCallback != null)
-            connectedCallback.connected();
+            connectedCallback.actionPerformed(new ActionEvent(this, 0, "connected")); // TODO: can the action event be composed of more useful information?
 
           connecting = false;
           connected = true;
@@ -127,7 +150,7 @@ public class QRProtoSocket {
 
       do {
         try {
-          Thread.sleep(RECEIVER_SLEEP_TIME);
+          Thread.sleep(SENDER_SLEEP_TIME);
         } catch (InterruptedException e) {
           e.printStackTrace();
         }
@@ -155,7 +178,7 @@ public class QRProtoSocket {
     public void run() {
       do {
         try {
-          Thread.sleep(SENDER_SLEEP_TIME);
+          Thread.sleep(RECEIVER_SLEEP_TIME);
         } catch (InterruptedException e) {
           e.printStackTrace();
         }
