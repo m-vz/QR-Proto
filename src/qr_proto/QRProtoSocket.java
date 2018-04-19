@@ -1,5 +1,6 @@
 package qr_proto;
 
+import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.image.BufferedImage;
 import java.nio.ByteBuffer;
@@ -35,13 +36,14 @@ public class QRProtoSocket {
   private Webcam webcam;
   private Thread senderThread, receiverThread;
 
-  public QRProtoSocket(int panelSize) {
+  public QRProtoSocket(int panelSize, Dimension cameraResolution) {
     messageQueue = new LinkedList<>();
     sentQRCodes = new LinkedList<>();
 
     panel = new QRProtoPanel(panelSize);
 
     webcam = Webcam.getWebcams().get(0);
+    webcam.setViewSize(cameraResolution);
 
     senderThread = new Thread(new QRProtoSocketSender());
     senderThread.start();

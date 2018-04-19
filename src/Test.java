@@ -9,10 +9,8 @@ public class Test {
     private TestWindow window;
 
     private void startTest() {
-      Dimension size = WebcamResolution.QVGA.getSize();
-
-      qrProto = new QRProto(600);
-      window = new TestWindow(qrProto, size);
+      qrProto = new QRProto(600, WebcamResolution.VGA.getSize());
+      window = new TestWindow(qrProto);
     }
 
     public static void main(String[] args) {

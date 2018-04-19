@@ -16,7 +16,7 @@ public class TestWindow extends JFrame {
   private QRProtoPanel qrProtoPanel;
   private QRProto qrProto;
 
-  public TestWindow(QRProto qrProto, Dimension webcamSize) throws HeadlessException {
+  public TestWindow(QRProto qrProto) throws HeadlessException {
     super();
 
     this.qrProto = qrProto;
@@ -25,11 +25,8 @@ public class TestWindow extends JFrame {
     setTitle("QR-Proto");
     setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
 
-    Webcam webcam = Webcam.getWebcams().get(0);
-    webcam.setViewSize(webcamSize);
-
-    webcamPanel = new WebcamPanel(webcam);
-    webcamPanel.setPreferredSize(webcamSize);
+    webcamPanel = new WebcamPanel(Webcam.getWebcams().get(0));
+    webcamPanel.setPreferredSize(WebcamResolution.QVGA.getSize());
     webcamPanel.setFPSDisplayed(true);
 
     testPanel = new TestPanel();
