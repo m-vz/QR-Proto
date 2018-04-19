@@ -81,4 +81,16 @@ public class QRCode {
     }
     return checksum;
   }
+
+  int getSequenceNumber() {
+    return sequenceNumber;
+  }
+
+  Message getContent() {
+    return content;
+  }
+
+  AcknowledgementMessage getAcknowledgementMessage() {
+    return acknowledgementMessage;
+  }
 }

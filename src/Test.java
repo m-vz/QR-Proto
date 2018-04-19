@@ -8,8 +8,6 @@ public class Test {
     private void startTest() {
       qrProto = new QRProto();
       window = new TestWindow(qrProto.getQRProtoPanel());
-
-      qrProto.getSocket().sendMessage("The quick brown fox jumped over the lazy dog.");
     }
 
     public static void main(String[] args) {

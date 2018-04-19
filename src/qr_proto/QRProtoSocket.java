@@ -27,14 +27,15 @@ public class QRProtoSocket {
 
   private volatile boolean shouldClose = false, connecting = false, connected = false;
   private volatile int currentSequenceNumber = 1;
-  private LinkedList<Message> messageQueue, sendMessagesQueue;
+  private LinkedList<Message> messageQueue;
+  private LinkedList<QRCode> sentQRCodes;
   private QRProtoPanel panel;
   private Webcam webcam;
   private Thread senderThread, receiverThread;
 
   public QRProtoSocket() {
     messageQueue = new LinkedList<>();
-    sendMessagesQueue = new LinkedList<>();
+    sentQRCodes = new LinkedList<>();
 
     Dimension size = WebcamResolution.VGA.getSize();
     panel = new QRProtoPanel(size.height);
@@ -60,6 +61,7 @@ public class QRProtoSocket {
 
   private void sendQRCode(QRCode qrCode) {
     panel.displayQRCode(qrCode); // TODO: this is temporary and needs to be expanded.
+    sentQRCodes.add(qrCode);
   }
 
   private void parseMessage(Message message) throws ParsingException {
@@ -76,17 +78,20 @@ public class QRProtoSocket {
     if(checksum != QRCode.checksum(content))
       throw new ParsingException("Error: Checksum not identical!");
 
-    if(sequenceNumber == 0 && sequenceNumber != currentSequenceNumber+1)
+    if(sequenceNumber != 0 && sequenceNumber != currentSequenceNumber+1)
       return; // TODO: handle with more style.
+    synchronized(this) {
+      currentSequenceNumber++;
+    }
 
     if(!connected && !connecting) {
-      if(contentLength == 6 && content.substring(0, 6).equals("\\m SYN")) { // connection is being established
+      if(contentLength == 8/* TODO: 8 tmp, should be 6 */ && content.substring(0, 6).equals("\\m SYN")) { // connection is being established
         sendQRCode(QRCode.SCK);
 
         connecting = true;
       }
     } else if(connecting) {
-      if(contentLength == 6 && content.substring(0, 2).equals("\\m")) { // connection message
+      if(contentLength == 8/* TODO: 8 tmp, should be 6 */ && content.substring(0, 2).equals("\\m")) { // connection message
         String msg = content.substring(3, 6);
 
         if(msg.equals("SCK")) { // reply with ack
