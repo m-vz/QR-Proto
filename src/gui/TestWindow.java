@@ -3,17 +3,23 @@ package gui;
 import com.github.sarxos.webcam.Webcam;
 import com.github.sarxos.webcam.WebcamPanel;
 import com.github.sarxos.webcam.WebcamResolution;
+import qr_proto.QRProto;
 import qr_proto.gui.QRProtoPanel;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.ActionEvent;
 
 public class TestWindow extends JFrame {
   private WebcamPanel webcamPanel;
+  private TestPanel testPanel;
   private QRProtoPanel qrProtoPanel;
+  private QRProto qrProto;
 
-  public TestWindow(QRProtoPanel qrProtoPanel) throws HeadlessException {
+  public TestWindow(QRProto qrProto) throws HeadlessException {
     super();
+
+    this.qrProto = qrProto;
 
     setLayout(new FlowLayout());
     setTitle("QR-Proto");
@@ -27,9 +33,12 @@ public class TestWindow extends JFrame {
     webcamPanel.setPreferredSize(size);
     webcamPanel.setFPSDisplayed(true);
 
-    this.qrProtoPanel = qrProtoPanel;
+    testPanel = new TestPanel();
+
+    this.qrProtoPanel = qrProto.getQRProtoPanel();
 
     add(webcamPanel);
+    add(testPanel);
     add(qrProtoPanel);
 
     pack();
@@ -42,5 +51,39 @@ public class TestWindow extends JFrame {
 
   public QRProtoPanel getQRProtoPanel() {
     return qrProtoPanel;
+  }
+
+  class TestPanel extends JPanel {
+    AbstractAction connectedCallback;
+    JButton connectButton, disconnectButton;
+
+    TestPanel() {
+      super();
+
+      connectedCallback = new AbstractAction() {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+          disconnectButton.setEnabled(true);
+        }
+      };
+      connectButton = new JButton(new AbstractAction("connect") {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+          qrProto.getSocket().connect(connectedCallback);
+          connectButton.setEnabled(false);
+        }
+      });
+      disconnectButton = new JButton(new AbstractAction("disconnect") {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+          qrProto.getSocket().disconnect();
+          disconnectButton.setEnabled(false);
+        }
+      });
+      disconnectButton.setEnabled(false);
+
+      add(connectButton);
+      add(disconnectButton);
+    }
   }
 }

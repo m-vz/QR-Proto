@@ -60,6 +60,8 @@ public class QRProtoSocket {
       return;
     }
 
+    System.out.println("Connecting...");
+
     connectedCallback = callback;
     connecting = true;
 
@@ -72,11 +74,15 @@ public class QRProtoSocket {
       return;
     }
 
+    System.out.println("Disconnecting...");
+
     connected = false;
     messageQueue = new LinkedList<>();
     sentQRCodes = new LinkedList<>();
 
     sendQRCode(QRCode.FIN);
+
+    System.out.println("Disconnected.");
   }
 
   private void sendQRCode(QRCode qrCode) {
@@ -140,6 +146,10 @@ public class QRProtoSocket {
 
   QRProtoPanel getPanel() {
     return panel;
+  }
+
+  boolean isConnected() {
+    return connected;
   }
 
   private class QRProtoSocketSender implements Runnable {

@@ -16,16 +16,12 @@ public class Message {
   }
 
   public Message escape (){
-    System.out.println("Escaping message content from:\n" + message);
     message = message.replace("\\", "\\b") + MESSAGE_END;
-    System.out.println("To:\n" + message);
     return this;
   }
 
   public Message unescape (){
-    System.out.println("Unescaping message content from:\n" + message);
     message = message.substring(0, message.length() - MESSAGE_END.length()).replace("\\b", "\\");
-    System.out.println("To:\n" + message);
     return this;
   }
 

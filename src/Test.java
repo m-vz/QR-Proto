@@ -7,7 +7,7 @@ public class Test {
 
     private void startTest() {
       qrProto = new QRProto();
-      window = new TestWindow(qrProto.getQRProtoPanel());
+      window = new TestWindow(qrProto);
     }
 
     public static void main(String[] args) {
