@@ -179,7 +179,7 @@ public class QRProtoSocket {
           String acknowledgementMessage = content.substring(contentLength - 6, contentLength - 4); // TODO: nothing is currently being done with this.
           byte checksum = Base64.getDecoder().decode(content.substring(contentLength - 4))[0];
 
-          if(checksum != QRCode.checksum(content)) {
+          if(checksum != QRCode.checksum(content.substring(0, contentLength - 4))) {
             System.err.println("Error: Checksum not identical!");
             continue; // TODO: currently ignoring messages with incorrect checksums.
           }

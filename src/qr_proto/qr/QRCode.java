@@ -59,7 +59,7 @@ public class QRCode {
         qrMessage += "\\a";
         break;
     }
-    qrMessage += Base64.getEncoder().encodeToString(new byte[]{checksum(content.getMessage())}); // adds 4 characters
+    qrMessage += Base64.getEncoder().encodeToString(new byte[]{checksum(qrMessage)}); // adds 4 characters
 
     try {
       return (new QRCodeWriter()).encode(qrMessage, BarcodeFormat.QR_CODE, size, size, hintMap);
