@@ -1,6 +1,5 @@
 package qr_proto;
 
-import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.image.BufferedImage;
 import java.nio.ByteBuffer;
@@ -9,7 +8,6 @@ import java.util.LinkedList;
 import java.util.Vector;
 
 import com.github.sarxos.webcam.Webcam;
-import com.github.sarxos.webcam.WebcamResolution;
 import com.google.zxing.*;
 import com.google.zxing.client.j2se.BufferedImageLuminanceSource;
 import com.google.zxing.common.HybridBinarizer;
@@ -24,15 +22,16 @@ import qr_proto.qr.QRCode.AcknowledgementMessage;
  */
 public class QRProtoSocket {
   private static final int MAX_BUFFER_SIZE = 2953;
-  private static final int SENDER_SLEEP_TIME = 10, RECEIVER_SLEEP_TIME = 10, DISPLAY_TIME = 1000;
+  private static final int SENDER_SLEEP_TIME = 10, RECEIVER_SLEEP_TIME = 10, DISPLAY_TIME = 100;
 
   private volatile boolean connecting = false, connected = false;
   private volatile int currentSequenceNumber = 1;
   private LinkedList<Message> messageQueue;
   private LinkedList<QRCode> sentQRCodes;
   private LinkedList<Integer> acksToSend;
-  private AbstractAction connectedCallback = null;
+  private String remainingContent = "";
   private QRProtoPanel panel;
+  private AbstractAction connectedCallback = null;
   private Webcam webcam;
   private Thread senderThread, receiverThread;
 
@@ -69,6 +68,10 @@ public class QRProtoSocket {
     sendQRCode(QRCode.SYN);
   }
 
+  public void setConnectedCallback(AbstractAction connectedCallback) {
+    this.connectedCallback = connectedCallback;
+  }
+
   public void disconnect() {
     if(!connected) {
       System.err.println("Not connected.");
@@ -97,8 +100,6 @@ public class QRProtoSocket {
     } catch (InterruptedException e) {
       e.printStackTrace();
     }
-
-//    panel.displayNothing();
   }
 
   private void parseMessage(Message message, int sequenceNumber, boolean acknowledgementMessage) {
@@ -250,7 +251,7 @@ public class QRProtoSocket {
             currentSequenceNumber++;
           }
 
-          content = content.substring(8, contentLength - 6);
+          content = remainingContent + content.substring(8, contentLength - 6); // concat the remaining content from the last message
           contentLength = content.length();
 
           Vector<Message> messages = new Vector<>();
@@ -260,7 +261,7 @@ public class QRProtoSocket {
             messages.add(new Message(content.substring(current, next)));
             current = next;
           }
-          content = content.substring(current, contentLength); // this is the remaining content that is not a complete message
+          remainingContent = content.substring(current, contentLength); // this is the remaining content that is not a complete message
 
           for(Message message: messages) {
             message.unescape();
