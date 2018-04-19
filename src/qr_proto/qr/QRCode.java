@@ -19,10 +19,10 @@ public class QRCode {
   }
 
   public static final QRCode
-      SYN = new QRCode(0, new Message("\\m SYN")),
-      ACK = new QRCode(0, new Message("\\m ACK")),
-      SCK = new QRCode(0, new Message("\\m SCK")),
-      FIN = new QRCode(0, new Message("\\m FIN"));
+      SYN = new QRCode(0, new Message("\\m SYN").escape()),
+      ACK = new QRCode(0, new Message("\\m ACK").escape()),
+      SCK = new QRCode(0, new Message("\\m SCK").escape()),
+      FIN = new QRCode(0, new Message("\\m FIN").escape());
 
   private int sequenceNumber;
   private Message content;

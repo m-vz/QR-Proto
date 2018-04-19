@@ -192,13 +192,13 @@ public class QRProtoSocket {
           byte checksum = Base64.getDecoder().decode(content.substring(contentLength - 4))[0];
 
           Vector<Message> messages = new Vector<>();
-          int current = 0, next;
+          int current = 8, next;
           while((next = content.indexOf(Message.MESSAGE_END, current)) != -1) {
             next += Message.MESSAGE_END.length();
             messages.add(new Message(content.substring(current, next)));
             current = next;
           }
-          content = content.substring(current); // this is the remaining content that is not a complete message
+          content = content.substring(current, contentLength - 4); // this is the remaining content that is not a complete message
 
           for(Message message: messages) {
             System.out.println("Received message with content:\n" + message);
