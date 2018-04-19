@@ -17,6 +17,7 @@ import qr_proto.gui.QRProtoPanel;
 import qr_proto.qr.QRCode;
 
 import javax.swing.*;
+import qr_proto.qr.QRCode.AcknowledgementMessage;
 
 /**
  * Created by Aeneas on 18.04.18.
@@ -29,6 +30,7 @@ public class QRProtoSocket {
   private volatile int currentSequenceNumber = 1;
   private LinkedList<Message> messageQueue;
   private LinkedList<QRCode> sentQRCodes;
+  private LinkedList<Integer> acksToSend;
   private AbstractAction connectedCallback = null;
   private QRProtoPanel panel;
   private Webcam webcam;
@@ -81,6 +83,7 @@ public class QRProtoSocket {
     connected = false;
     messageQueue = new LinkedList<>();
     sentQRCodes = new LinkedList<>();
+    acksToSend = new LinkedList<>();
 
     System.out.println("Disconnected.");
   }
@@ -98,7 +101,7 @@ public class QRProtoSocket {
 //    panel.displayNothing();
   }
 
-  private void parseMessage(Message message) {
+  private void parseMessage(Message message, int sequenceNumber, boolean acknowledgementMessage) {
     String content = message.getMessage();
     int contentLength = content.length();
 
@@ -132,18 +135,33 @@ public class QRProtoSocket {
     } else if(contentLength >= 6 && content.substring(0, 2).equals("\\m")) { // socket message
         String msg = content.substring(3, 6);
 
-        if(msg.equals("ACK")) { // message acknowledgement received
-//          int i = 6;
-//          do {
-//            currentSequenceNumber++;
-//          } while((i + 5) < contentLength);
-//
-//          if(sequenceNumber > currentSequenceNumber+1)
+        if(msg.equals("ACK")) {
+          LinkedList<Integer> handleACK = new LinkedList<>();
+          for (int i = 6; i < contentLength; i+=4){
+            handleACK.add(Integer.parseInt(content.substring(i+1, i+4)));
+          }
+          while (!handleACK.isEmpty()){
+            if(handleACK.pop().equals(sentQRCodes.peek().getSequenceNumber())){
+              sentQRCodes.pop();
+            } else {
+              sentQRCodes.forEach(this::sendQRCode);
+              System.err.println("Messages have been resent!");
+            }
+          }
         } else if(msg.equals("FIN")) {
           disconnected();
         }
     } else { // content message
       System.out.println("Received content message:\n" + content);
+      acksToSend.add(sequenceNumber);
+      if (!acknowledgementMessage){
+        String acks = "\\m ACK";
+        for(int ack:acksToSend){
+          acks += " ";
+          acks += Integer.toString(ack);
+        }
+        sendQRCode(new QRCode(0, new Message(acks)));
+      }
     }
   }
 
@@ -217,16 +235,17 @@ public class QRProtoSocket {
           int contentLength = content.length();
 
           int sequenceNumber = ByteBuffer.wrap(Base64.getDecoder().decode(content.substring(0, 8))).getInt();
-          String acknowledgementMessage = content.substring(contentLength - 6, contentLength - 4); // TODO: nothing is currently being done with this.
+          boolean acknowledgementMessage = content.substring(contentLength - 6, contentLength - 4).equals(
+              AcknowledgementMessage.CONTINUE); // TODO: \e is currently ignored
           byte checksum = Base64.getDecoder().decode(content.substring(contentLength - 4))[0];
 
           if(checksum != QRCode.checksum(content.substring(0, contentLength - 4))) {
             System.err.println("Error: Checksum not identical!");
-            continue; // TODO: currently ignoring messages with incorrect checksums.
+            continue; //not necessary to handle since wrong checksum are never acknowledged
           }
 
           if(sequenceNumber != 0 && sequenceNumber != currentSequenceNumber+1)
-            return; // TODO: handle with more style.
+            continue; //not necessary to handle since wrong sequenceNumber are never acknowledged
           synchronized(this) {
             currentSequenceNumber++;
           }
@@ -246,7 +265,7 @@ public class QRProtoSocket {
           for(Message message: messages) {
             message.unescape();
 
-            parseMessage(message);
+            parseMessage(message, sequenceNumber, acknowledgementMessage);
           }
         }
       } while(true);

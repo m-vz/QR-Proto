@@ -15,12 +15,26 @@ import qr_proto.Message;
 
 public class QRCode {
   public enum AcknowledgementMessage{
-    CONTINUE, END, END_OF_ACK
+    END(false), CONTINUE(true);
+
+    private final boolean cont;
+
+    private AcknowledgementMessage(boolean cont) {
+      this.cont = cont;
+    }
+
+    @Override
+    public String toString() {
+      if (cont) return "\\c";
+      else return "\\e";
+
+    }
   }
 
   public static final QRCode
       SYN = new QRCode(0, new Message("\\m SYN").escape()),
       ACK = new QRCode(0, new Message("\\m ACK").escape()),
+      ACK_CONTINUE = new QRCode(0, new Message("\\m ACK").escape(), AcknowledgementMessage.CONTINUE),
       SCK = new QRCode(0, new Message("\\m SCK").escape()),
       FIN = new QRCode(0, new Message("\\m FIN").escape());
 
@@ -29,7 +43,7 @@ public class QRCode {
   private AcknowledgementMessage acknowledgementMessage;
 
   public QRCode(int sequenceNumber, Message content){
-    this (sequenceNumber, content, AcknowledgementMessage.CONTINUE);
+    this (sequenceNumber, content, AcknowledgementMessage.END);
   }
 
   public QRCode(int sequenceNumber, Message content, AcknowledgementMessage acknowledgementMessage) {
@@ -48,17 +62,8 @@ public class QRCode {
 
     qrMessage += Base64.getEncoder().encodeToString(ByteBuffer.allocate(4).putInt(sequenceNumber).array()); // adds 8 characters
     qrMessage += content;
-    switch (acknowledgementMessage) {
-      case CONTINUE:
-        qrMessage += "\\c";
-        break;
-      case END:
-        qrMessage += "\\e";
-        break;
-      case END_OF_ACK:
-        qrMessage += "\\a";
-        break;
-    }
+    qrMessage += acknowledgementMessage;
+
     qrMessage += Base64.getEncoder().encodeToString(new byte[]{checksum(qrMessage)}); // adds 4 characters
 
     try {
@@ -82,15 +87,15 @@ public class QRCode {
     return checksum;
   }
 
-  int getSequenceNumber() {
+  public int getSequenceNumber() {
     return sequenceNumber;
   }
 
-  Message getContent() {
+  public Message getContent() {
     return content;
   }
 
-  AcknowledgementMessage getAcknowledgementMessage() {
+  public AcknowledgementMessage getAcknowledgementMessage() {
     return acknowledgementMessage;
   }
 }
