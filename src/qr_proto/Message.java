@@ -24,7 +24,7 @@ public class Message {
 
   public Message unescape (){
     System.out.println("Unescaping message content from:\n" + message);
-    message = message.substring(message.length() - MESSAGE_END.length()).replace("\\b", "\\");
+    message = message.substring(0, message.length() - MESSAGE_END.length()).replace("\\b", "\\");
     System.out.println("To:\n" + message);
     return this;
   }
