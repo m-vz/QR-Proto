@@ -36,7 +36,7 @@ public class QRProtoPanel extends JPanel {
         if(bitMatrix.get(x, y))
           qrCodeGraphics.fillRect(x, y, 1, 1);
 
-    repaint();
+    paintComponent(getGraphics()); // TODO: better solution? (repaint(0) is even slower)
   }
 
   public void displayNothing() {
