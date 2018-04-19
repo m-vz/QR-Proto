@@ -22,8 +22,8 @@ import qr_proto.qr.QRCode.AcknowledgementMessage;
  * Created by Aeneas on 18.04.18.
  */
 public class QRProtoSocket {
-  private static final int MAX_BUFFER_SIZE = 2953;
-  private static final int SENDER_SLEEP_TIME = 10, RECEIVER_SLEEP_TIME = 10, DISPLAY_TIME = 100;
+  private static final int MAX_BUFFER_SIZE = /*2953*/1000; // TODO: find correct max buffer size
+  private static final int SENDER_SLEEP_TIME = 10, RECEIVER_SLEEP_TIME = 10, DISPLAY_TIME = 250;
 
   private volatile boolean connecting = false, connected = false;
   private volatile int currentSequenceNumber = 1;
@@ -190,8 +190,8 @@ public class QRProtoSocket {
           e.printStackTrace();
         }
 
-        if (!messageQueue.isEmpty()) {
-          if (messageQueue.peek().getMessage().length() > remainingBufferSize) {
+        if(!messageQueue.isEmpty()) {
+          if(messageQueue.peek().getMessage().length() > remainingBufferSize) {
             message = new Message(messageQueue.peek().removeSubstring(0, remainingBufferSize));
           } else {
             message = messageQueue.poll();
