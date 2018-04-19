@@ -73,8 +73,6 @@ public class QRProtoSocket {
       return;
     }
 
-    System.out.println("Disconnecting...");
-
     sendQRCode(QRCode.FIN);
     disconnected();
   }
@@ -122,9 +120,13 @@ public class QRProtoSocket {
 
           connecting = false;
           connected = true;
+
+          System.out.println("Connected.");
         } else if(msg.equals("ACK")) { // connection has been established
           connecting = false;
           connected = true;
+
+          System.out.println("Connected.");
         }
       }
     } else if(contentLength >= 6 && content.substring(0, 2).equals("\\m")) { // socket message
