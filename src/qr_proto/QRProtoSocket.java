@@ -25,7 +25,7 @@ public class QRProtoSocket {
   private static final int MAX_BUFFER_SIZE = 2953;
   private static final int SENDER_SLEEP_TIME = 10, RECEIVER_SLEEP_TIME = 10, DISPLAY_TIME = 1000;
 
-  private volatile boolean shouldClose = false, connecting = false, connected = false;
+  private volatile boolean connecting = false, connected = false;
   private volatile int currentSequenceNumber = 1;
   private LinkedList<Message> messageQueue;
   private LinkedList<QRCode> sentQRCodes;
@@ -38,7 +38,7 @@ public class QRProtoSocket {
     messageQueue = new LinkedList<>();
     sentQRCodes = new LinkedList<>();
 
-    Dimension size = WebcamResolution.VGA.getSize();
+    Dimension size = WebcamResolution.QVGA.getSize();
     panel = new QRProtoPanel(size.height);
 
     webcam = Webcam.getWebcams().get(0);
@@ -76,11 +76,14 @@ public class QRProtoSocket {
 
     System.out.println("Disconnecting...");
 
+    sendQRCode(QRCode.FIN);
+    disconnected();
+  }
+
+  private void disconnected() {
     connected = false;
     messageQueue = new LinkedList<>();
     sentQRCodes = new LinkedList<>();
-
-    sendQRCode(QRCode.FIN);
 
     System.out.println("Disconnected.");
   }
@@ -134,14 +137,11 @@ public class QRProtoSocket {
 //
 //          if(sequenceNumber > currentSequenceNumber+1)
         } else if(msg.equals("FIN")) {
-          shouldClose = true;
-
-          connected = false;
+          disconnected();
         }
     } else { // content message
       System.out.println("Received content message:\n" + content);
     }
-
   }
 
   QRProtoPanel getPanel() {
@@ -158,6 +158,7 @@ public class QRProtoSocket {
       Message message;
       int remainingBufferSize = MAX_BUFFER_SIZE;
 
+      //noinspection InfiniteLoopStatement
       do {
         try {
           Thread.sleep(SENDER_SLEEP_TIME);
@@ -177,9 +178,7 @@ public class QRProtoSocket {
           sendQRCode(new QRCode(currentSequenceNumber, message, QRCode.AcknowledgementMessage.END));
           synchronized(this) { currentSequenceNumber++; }
         }
-      } while (!shouldClose);
-
-      sendQRCode(QRCode.FIN);
+      } while (true);
     }
   }
 
@@ -249,7 +248,7 @@ public class QRProtoSocket {
             parseMessage(message);
           }
         }
-      } while(!shouldClose);
+      } while(true);
     }
   }
 }

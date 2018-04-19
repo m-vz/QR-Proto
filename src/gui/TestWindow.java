@@ -78,6 +78,7 @@ public class TestWindow extends JFrame {
         public void actionPerformed(ActionEvent e) {
           qrProto.getSocket().disconnect();
           disconnectButton.setEnabled(false);
+          connectButton.setEnabled(true);
         }
       });
       disconnectButton.setEnabled(false);
