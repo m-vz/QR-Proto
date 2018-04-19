@@ -14,6 +14,7 @@ import com.github.sarxos.webcam.WebcamResolution;
 import com.google.zxing.*;
 import com.google.zxing.client.j2se.BufferedImageLuminanceSource;
 import com.google.zxing.common.HybridBinarizer;
+import qr_proto.callback.ConnectedCallback;
 import qr_proto.exception.ParsingException;
 import qr_proto.gui.QRProtoPanel;
 import qr_proto.qr.QRCode;
@@ -29,6 +30,7 @@ public class QRProtoSocket {
   private volatile int currentSequenceNumber = 1;
   private LinkedList<Message> messageQueue;
   private LinkedList<QRCode> sentQRCodes;
+  private ConnectedCallback connectedCallback = null;
   private QRProtoPanel panel;
   private Webcam webcam;
   private Thread senderThread, receiverThread;
@@ -53,7 +55,8 @@ public class QRProtoSocket {
     messageQueue.add(new Message(message));
   }
 
-  public void connect() {
+  public void connect(ConnectedCallback callback) {
+    connectedCallback = callback;
     connecting = true;
 
     sendQRCode(QRCode.SYN);
@@ -80,6 +83,9 @@ public class QRProtoSocket {
 
         if(msg.equals("SCK")) { // reply with ack
           sendQRCode(QRCode.ACK);
+
+          if(connectedCallback != null)
+            connectedCallback.connected();
 
           connecting = false;
           connected = true;
