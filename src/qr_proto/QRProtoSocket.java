@@ -64,21 +64,9 @@ public class QRProtoSocket {
     sentQRCodes.add(qrCode);
   }
 
-  private void parseMessage(Message message, int sequenceNumber, String acknowledgementMessage, byte checksum) throws ParsingException {
+  private void parseMessage(Message message) {
     String content = message.getMessage();
     int contentLength = content.length();
-
-    content = content.substring(8, contentLength - 6);
-    contentLength = content.length();
-
-    if(checksum != QRCode.checksum(content))
-      throw new ParsingException("Error: Checksum not identical!");
-
-    if(sequenceNumber != 0 && sequenceNumber != currentSequenceNumber+1)
-      return; // TODO: handle with more style.
-    synchronized(this) {
-      currentSequenceNumber++;
-    }
 
     if(!connected && !connecting) {
       if(contentLength == 6 && content.substring(0, 6).equals("\\m SYN")) { // connection is being established
@@ -188,28 +176,38 @@ public class QRProtoSocket {
           int contentLength = content.length();
 
           int sequenceNumber = ByteBuffer.wrap(Base64.getDecoder().decode(content.substring(0, 8))).getInt();
-          String acknowledgementMessage = content.substring(contentLength - 6, contentLength - 4);
+          String acknowledgementMessage = content.substring(contentLength - 6, contentLength - 4); // TODO: nothing is currently being done with this.
           byte checksum = Base64.getDecoder().decode(content.substring(contentLength - 4))[0];
 
+          if(checksum != QRCode.checksum(content)) {
+            System.err.println("Error: Checksum not identical!");
+            continue; // TODO: currently ignoring messages with incorrect checksums.
+          }
+
+          if(sequenceNumber != 0 && sequenceNumber != currentSequenceNumber+1)
+            return; // TODO: handle with more style.
+          synchronized(this) {
+            currentSequenceNumber++;
+          }
+
+          content = content.substring(8, contentLength - 6);
+          contentLength = content.length();
+
           Vector<Message> messages = new Vector<>();
-          int current = 8, next;
+          int current = 0, next;
           while((next = content.indexOf(Message.MESSAGE_END, current)) != -1) {
             next += Message.MESSAGE_END.length();
             messages.add(new Message(content.substring(current, next)));
             current = next;
           }
-          content = content.substring(current, contentLength - 4); // this is the remaining content that is not a complete message
+          content = content.substring(current, contentLength); // this is the remaining content that is not a complete message
 
           for(Message message: messages) {
             System.out.println("Received message with content:\n" + message);
             message.unescape();
             System.out.println("Unescaped content to:\n" + message);
 
-            try {
-              parseMessage(message, sequenceNumber, acknowledgementMessage, checksum);
-            } catch(ParsingException e) {
-              e.printStackTrace();
-            }
+            parseMessage(message);
           }
         }
       } while(!shouldClose);
