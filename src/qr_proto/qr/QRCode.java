@@ -16,10 +16,10 @@ import qr_proto.Message;
 
 public class QRCode {
   public static final QRCode
-      SYN = new QRCode(0, new Message("\\m SYN", true).escape()),
-      ACK = new QRCode(0, new Message("\\m ACK", true).escape()),
-      SCK = new QRCode(0, new Message("\\m SCK", true).escape()),
-      FIN = new QRCode(0, new Message("\\m FIN", true).escape());
+      SYN = new QRCode(0, new Message("\\m SYN", true)),
+      ACK = new QRCode(0, new Message("\\m ACK", true)),
+      SCK = new QRCode(0, new Message("\\m SCK", true)),
+      FIN = new QRCode(0, new Message("\\m FIN", true));
   private ArrayList<Message> messages = new ArrayList<>();
 
   private static QRCodeWriter qrCodeWriter = new QRCodeWriter();

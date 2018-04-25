@@ -23,7 +23,7 @@ import qr_proto.qr.QRCode.AcknowledgementMessage;
  * Created by Aeneas on 18.04.18.
  */
 public class QRProtoSocket {
-  private static final int MAX_BUFFER_SIZE = /*2953*/1000; // TODO: find correct max buffer size
+  private static final int MAX_BUFFER_SIZE = /*2953*/50; // TODO: find correct max buffer size
   private static final int SENDER_SLEEP_TIME = 10, RECEIVER_SLEEP_TIME = 10, DISPLAY_TIME = 200;
 
   private volatile boolean connecting = false, connected = false, canSend = true;
@@ -88,6 +88,10 @@ public class QRProtoSocket {
 
   private void disconnected() {
     connected = false;
+    connecting = false;
+    synchronized(this) {
+      canSend = true;
+    }
     messageQueue = new LinkedList<>();
     sentQRCodes = new LinkedList<>();
     acksToSend = new LinkedList<>();
@@ -104,6 +108,9 @@ public class QRProtoSocket {
         priorityQueue.add(QRCode.SCK);
 
         connecting = true;
+        synchronized(this) {
+          canSend = true;
+        }
       }
     } else if(connecting) {
       if(contentLength == 6 && content.substring(0, 2).equals("\\m")) { // connection message
@@ -117,11 +124,17 @@ public class QRProtoSocket {
 
           connecting = false;
           connected = true;
+          synchronized(this) {
+            canSend = true;
+          }
 
           System.out.println("Connected.");
         } else if(msg.equals("ACK")) { // connection has been established
           connecting = false;
           connected = true;
+          synchronized(this) {
+            canSend = true;
+          }
 
           System.out.println("Connected.");
         }
@@ -161,6 +174,9 @@ public class QRProtoSocket {
           acks += Base64.getEncoder().encodeToString(ByteBuffer.allocate(4).putInt(ack).array()); // adds 8 characters
         }
         priorityQueue.add(new QRCode(0, new Message(acks, true)));
+        synchronized(this) {
+          canSend = true;
+        }
       }
     }
   }
@@ -194,7 +210,7 @@ public class QRProtoSocket {
           if(!messageQueue.isEmpty()) {
             int length;
 
-            while((length = messageQueue.peek().getMessage().length()) < remainingBufferSize) {
+            while(!messageQueue.isEmpty() && (length = messageQueue.peek().getMessage().length()) < remainingBufferSize) {
               messages.add(messageQueue.pop());
               remainingBufferSize -= length;
             }
