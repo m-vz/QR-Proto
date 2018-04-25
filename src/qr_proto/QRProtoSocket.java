@@ -26,7 +26,7 @@ public class QRProtoSocket {
   private static final int MAX_BUFFER_SIZE = /*2953*/50; // TODO: find correct max buffer size
   private static final int SENDER_SLEEP_TIME = 10, RECEIVER_SLEEP_TIME = 10, DISPLAY_TIME = 200;
 
-  private volatile boolean connecting = false, connected = false, canSend = true;
+  private volatile boolean connecting = false, connected = false, canSend = true, sendAcks = false;
   private volatile int currentSequenceNumber = 1;
   private LinkedList<Message> messageQueue;
   private LinkedList<QRCode> sentQRCodes, priorityQueue;
@@ -168,17 +168,11 @@ public class QRProtoSocket {
         }
     } else { // content message
       System.out.println("Received content message:\n" + content);
-      acksToSend.add(sequenceNumber);
-      if (!acknowledgementMessage){
-        String acks = "\\m ACK";
-        for(int ack: acksToSend){
-          acks += " ";
-          acks += Base64.getEncoder().encodeToString(ByteBuffer.allocate(4).putInt(ack).array()); // adds 8 characters
-        }
-        priorityQueue.add(new QRCode(0, new Message(acks, true)));
-        synchronized(this) {
-          canSend = true;
-        }
+      synchronized (this) {
+        if (!acksToSend.contains(sequenceNumber))
+          acksToSend.add(sequenceNumber);
+        if (!acknowledgementMessage)
+          sendAcks = true;
       }
     }
   }
@@ -226,6 +220,22 @@ public class QRProtoSocket {
           }
         }
 
+        synchronized (this) {
+          if (sendAcks && !acksToSend.isEmpty()) {
+            String acks = "\\m ACK";
+            for (int ack : acksToSend) {
+              acks += " ";
+              acks += Base64.getEncoder().encodeToString(ByteBuffer.allocate(4).putInt(ack).array()); // adds 8 characters
+            }
+            priorityQueue.add(new QRCode(0, new Message(acks, true)));
+
+            canSend = true;
+            sendAcks = false;
+            acksToSend = new LinkedList<>();
+          }
+        }
+
+        // TODO: check synchronizing
         if(canSend && !priorityQueue.isEmpty()) {
           System.out.println("Sending priority qr code with messages:");
           for(Message message: priorityQueue.peek().getMessages())
@@ -334,7 +344,10 @@ public class QRProtoSocket {
             messages.add(new Message(content.substring(current, next), true));
             current = next;
           }
+
           remainingContent = content.substring(current, contentLength); // this is the remaining content that is not a complete message
+          if(contentLength > 0)
+            System.out.println("Content: " + content);
 
           for(Message message: messages)
             parseMessage(message.unescape(), sequenceNumber, acknowledgementMessage);
