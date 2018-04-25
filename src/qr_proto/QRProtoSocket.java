@@ -311,10 +311,14 @@ public class QRProtoSocket {
             continue; //not necessary to handle since wrong checksum are never acknowledged
           }
 
-          if(sequenceNumber != 0 && sequenceNumber != currentSequenceNumber+1)
-            continue; //not necessary to handle since wrong sequenceNumber are never acknowledged
-          synchronized(this) {
-            currentSequenceNumber++;
+          if(sequenceNumber != 0) {
+            if(sequenceNumber != currentSequenceNumber + 1)
+              continue; //not necessary to handle since wrong sequenceNumber are never acknowledged
+            else {
+              synchronized(this) {
+                currentSequenceNumber++;
+              }
+            }
           }
 
           content = remainingContent + content.substring(8, contentLength - 6); // concat the remaining content from the last message
