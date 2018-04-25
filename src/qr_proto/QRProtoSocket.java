@@ -41,6 +41,7 @@ public class QRProtoSocket {
     messageQueue = new LinkedList<>();
     sentQRCodes = new LinkedList<>();
     priorityQueue = new LinkedList<>();
+    acksToSend = new LinkedList<>();
 
     panel = new QRProtoPanel(panelSize);
 
@@ -82,8 +83,8 @@ public class QRProtoSocket {
       return;
     }
 
-    priorityQueue.add(QRCode.FIN);
     disconnected();
+    priorityQueue.add(QRCode.FIN); // FIXME: canSend will never be true again after FIN was sent.
   }
 
   private void disconnected() {
@@ -94,6 +95,7 @@ public class QRProtoSocket {
     }
     messageQueue = new LinkedList<>();
     sentQRCodes = new LinkedList<>();
+    priorityQueue = new LinkedList<>();
     acksToSend = new LinkedList<>();
 
     System.out.println("Disconnected.");
@@ -241,13 +243,13 @@ public class QRProtoSocket {
             for(Message message: messages)
               System.out.println(message.getMessage());
 
-            sendCode(new QRCode(currentSequenceNumber, messages, acknowledgementMessage));
-
             synchronized(this) {
               currentSequenceNumber++;
               if(acknowledgementMessage.equals(AcknowledgementMessage.END))
                 canSend = false;
             }
+
+            sendCode(new QRCode(currentSequenceNumber, messages, acknowledgementMessage));
 
             remainingBufferSize = MAX_BUFFER_SIZE;
             lastTime = 0;
@@ -258,7 +260,8 @@ public class QRProtoSocket {
 
     private void sendCode(QRCode qrCode) {
       panel.displayQRCode(qrCode);
-      sentQRCodes.add(qrCode);
+      if(qrCode.getSequenceNumber() > 0)
+        sentQRCodes.add(qrCode);
 
       if(qrCode.getAcknowledgementMessage().equals(AcknowledgementMessage.CONTINUE)) {
         try {
