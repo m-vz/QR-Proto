@@ -4,9 +4,11 @@ public class Message {
   public static final String MESSAGE_END = "\\0";
 
   private String message;
+  private boolean complete;
 
-  public Message(String message) {
+  public Message(String message, boolean complete) {
     this.message = message;
+    this.complete = complete;
   }
 
   public String removeSubstring(int beginIndex, int endIndex) {
@@ -16,12 +18,17 @@ public class Message {
   }
 
   public Message escape (){
-    message = message.replace("\\", "\\b") + MESSAGE_END;
+    message = message.replace("\\", "\\b");
+    if(complete)
+      message += MESSAGE_END;
     return this;
   }
 
-  public Message unescape (){
-    message = message.substring(0, message.length() - MESSAGE_END.length()).replace("\\b", "\\");
+  public Message unescape () {
+    int length = message.length();
+    if(complete)
+      length -= MESSAGE_END.length();
+    message = message.substring(0, length).replace("\\b", "\\");
     return this;
   }
 
