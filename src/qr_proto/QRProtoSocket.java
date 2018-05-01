@@ -149,12 +149,21 @@ public class QRProtoSocket {
           for (int i = 6; i < contentLength; i+=9)
             handleACK.add(ByteBuffer.wrap(Base64.getDecoder().decode(content.substring(i+1, i+9))).getInt());
 
-          while (!handleACK.isEmpty()){
-            if(handleACK.pop().equals(sentQRCodes.peek().getSequenceNumber())){
+          while(!handleACK.isEmpty()) {
+            Integer ack = handleACK.pop();
+            boolean cont = true;
+
+            for(QRCode code: sentQRCodes)
+              if(ack >= code.getSequenceNumber())
+                cont = false;
+            if(cont)
+              continue;
+
+            if(!sentQRCodes.isEmpty() && ack.equals(sentQRCodes.peek().getSequenceNumber())){
               sentQRCodes.pop();
             } else {
-              priorityQueue.addAll(sentQRCodes);
               System.err.println("Messages have been resent!");
+              priorityQueue.addAll(sentQRCodes);
               break;
             }
           }
@@ -213,6 +222,7 @@ public class QRProtoSocket {
             if(!messageQueue.isEmpty() && remainingBufferSize > 0) {
               messages.add(new Message(messageQueue.peek().removeSubstring(0, remainingBufferSize), false));
               acknowledgementMessage = AcknowledgementMessage.CONTINUE;
+              remainingBufferSize = 0;
             }
 
             if(lastTime == 0)
@@ -237,30 +247,33 @@ public class QRProtoSocket {
 
         // TODO: check synchronizing
         if(canSend && !priorityQueue.isEmpty()) {
-          System.out.println("Sending priority qr code with messages:");
-          for(Message message: priorityQueue.peek().getMessages())
+          QRCode code = priorityQueue.pop();
+
+          System.out.println("Sending priority qr code with sequence number " + code.getSequenceNumber() + " and messages:");
+          for(Message message: code.getMessages())
             System.out.println(message.getMessage());
 
-          sendCode(priorityQueue.pop());
+          sendCode(code);
 
           synchronized(this) {
-            if(acknowledgementMessage.equals(AcknowledgementMessage.END))
+            if(code.getSequenceNumber() > 0 && code.getAcknowledgementMessage().equals(AcknowledgementMessage.END))
               canSend = false;
           }
         } else if(canSend && !messages.isEmpty()) {
           if(remainingBufferSize <= 0 || (System.currentTimeMillis() - lastTime) >= DISPLAY_TIME) {
-            System.out.println("Sending qr code with sequence number " + currentSequenceNumber + " and messages:");
-            for(Message message: messages)
-              System.out.println(message.getMessage());
-
             synchronized(this) {
               currentSequenceNumber++;
               if(acknowledgementMessage.equals(AcknowledgementMessage.END))
                 canSend = false;
             }
 
+            System.out.println("Sending qr code with sequence number " + currentSequenceNumber + " and messages:");
+            for(Message message: messages)
+              System.out.println(message.getMessage());
+
             sendCode(new QRCode(currentSequenceNumber, messages, acknowledgementMessage));
 
+            messages.clear();
             remainingBufferSize = MAX_BUFFER_SIZE;
             lastTime = 0;
           }
@@ -273,7 +286,7 @@ public class QRProtoSocket {
       if(qrCode.getSequenceNumber() > 0)
         sentQRCodes.add(qrCode);
 
-      if(qrCode.getAcknowledgementMessage().equals(AcknowledgementMessage.CONTINUE)) {
+      if(qrCode.getSequenceNumber() == 0 || qrCode.getAcknowledgementMessage().equals(AcknowledgementMessage.CONTINUE)) {
         try {
           Thread.sleep(DISPLAY_TIME);
         } catch(InterruptedException e) {
