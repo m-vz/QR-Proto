@@ -341,7 +341,7 @@ public class QRProtoSocket {
           int current = 0, next;
           while((next = content.indexOf(Message.MESSAGE_END, current)) != -1) {
             next += Message.MESSAGE_END.length();
-            messages.add(new Message(content.substring(current, next), true));
+            messages.add(new Message(content.substring(current, next), true, true));
             current = next;
           }
 
