@@ -90,6 +90,11 @@ public class QRCode {
     return sequenceNumber;
   }
 
+  @Override
+  public boolean equals(Object obj) {
+    return obj.getClass().equals(QRCode.class) && sequenceNumber == ((QRCode) obj).getSequenceNumber();
+  }
+
   public enum AcknowledgementMessage{
     END(false), CONTINUE(true);
 

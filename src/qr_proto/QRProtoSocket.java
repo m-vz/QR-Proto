@@ -26,11 +26,11 @@ public class QRProtoSocket {
   private static final int MAX_BUFFER_SIZE = /*2953*/50; // TODO: find correct max buffer size
   private static final int SENDER_SLEEP_TIME = 10, RECEIVER_SLEEP_TIME = 10, DISPLAY_TIME = 200;
 
-  private volatile boolean connecting = false, connected = false, canSend = true, sendAcks = false;
+  private volatile boolean connecting = false, connected = false, canSend = true;
   private volatile int currentSequenceNumber = 1;
   private LinkedList<Message> messageQueue;
   private LinkedList<QRCode> sentQRCodes, priorityQueue;
-  private LinkedList<Integer> acksToSend;
+  private int ackToSend = -1;
   private String remainingContent = "";
   private QRProtoPanel panel;
   private AbstractAction connectedCallback = null;
@@ -41,7 +41,6 @@ public class QRProtoSocket {
     messageQueue = new LinkedList<>();
     sentQRCodes = new LinkedList<>();
     priorityQueue = new LinkedList<>();
-    acksToSend = new LinkedList<>();
 
     panel = new QRProtoPanel(panelSize);
 
@@ -96,12 +95,12 @@ public class QRProtoSocket {
     messageQueue = new LinkedList<>();
     sentQRCodes = new LinkedList<>();
     priorityQueue = new LinkedList<>();
-    acksToSend = new LinkedList<>();
+    ackToSend = -1;
 
     System.out.println("Disconnected.");
   }
 
-  private void parseMessage(Message message, int sequenceNumber, boolean acknowledgementMessage) {
+  private void parseMessage(Message message, int sequenceNumber) {
     String content = message.getMessage();
     int contentLength = content.length();
 
@@ -145,32 +144,19 @@ public class QRProtoSocket {
         String msg = content.substring(3, 6);
 
         if(msg.equals("ACK")) {
-          LinkedList<Integer> handleACK = new LinkedList<>();
-          for (int i = 6; i < contentLength; i+=9)
-            handleACK.add(ByteBuffer.wrap(Base64.getDecoder().decode(content.substring(i+1, i+9))).getInt());
+          Integer handleACK = ByteBuffer.wrap(Base64.getDecoder().decode(content.substring(7, 15))).getInt();
 
-          while(!handleACK.isEmpty()) {
-            Integer ack = handleACK.pop();
-            boolean cont = true;
+          for(QRCode code: sentQRCodes)
+            if(code.getSequenceNumber() <= handleACK)
+              sentQRCodes.remove(code);
 
-            for(QRCode code: sentQRCodes)
-              if(ack >= code.getSequenceNumber())
-                cont = false;
-            if(cont)
-              continue;
-
-            if(!sentQRCodes.isEmpty() && ack.equals(sentQRCodes.peek().getSequenceNumber())){
-              sentQRCodes.pop();
-            } else {
-              System.err.println("Messages have been resent!");
-              priorityQueue.addAll(sentQRCodes);
-              break;
-            }
-          }
           if(sentQRCodes.isEmpty()) {
             synchronized(this) {
               canSend = true;
             }
+          } else {
+            System.err.println("Messages have been resent!");
+            priorityQueue.addAll(sentQRCodes);
           }
         } else if(msg.equals("FIN")) {
           disconnected();
@@ -178,10 +164,7 @@ public class QRProtoSocket {
     } else { // content message
       System.out.println("Received content message:\n" + content);
       synchronized (this) {
-        if (!acksToSend.contains(sequenceNumber))
-          acksToSend.add(sequenceNumber);
-        if (!acknowledgementMessage)
-          sendAcks = true;
+        ackToSend = sequenceNumber;
       }
     }
   }
@@ -198,6 +181,7 @@ public class QRProtoSocket {
     @Override
     public void run() {
       ArrayList<Message> messages = new ArrayList<>();
+      AcknowledgementMessage acknowledgementMessage = AcknowledgementMessage.END;
       int remainingBufferSize = MAX_BUFFER_SIZE;
       long lastTime = 0;
 
@@ -209,14 +193,13 @@ public class QRProtoSocket {
           e.printStackTrace();
         }
 
-        AcknowledgementMessage acknowledgementMessage = AcknowledgementMessage.END;
-
         synchronized(this) {
           if(!messageQueue.isEmpty()) {
             int length;
 
             while(!messageQueue.isEmpty() && (length = messageQueue.peek().getMessage().length()) < remainingBufferSize) {
               messages.add(messageQueue.pop());
+              acknowledgementMessage = AcknowledgementMessage.END;
               remainingBufferSize -= length;
             }
             if(!messageQueue.isEmpty() && remainingBufferSize > 0) {
@@ -231,17 +214,12 @@ public class QRProtoSocket {
         }
 
         synchronized (this) {
-          if (sendAcks && !acksToSend.isEmpty()) {
-            String acks = "\\m ACK";
-            for (int ack : acksToSend) {
-              acks += " ";
-              acks += Base64.getEncoder().encodeToString(ByteBuffer.allocate(4).putInt(ack).array()); // adds 8 characters
-            }
-            priorityQueue.add(new QRCode(0, new Message(acks, true)));
+          if(ackToSend >= 0) {
+            String ack = "\\m ACK " + Base64.getEncoder().encodeToString(ByteBuffer.allocate(4).putInt(ackToSend).array());
+            priorityQueue.add(new QRCode(0, new Message(ack, true)));
 
             canSend = true;
-            sendAcks = false;
-            acksToSend = new LinkedList<>();
+            ackToSend = -1;
           }
         }
 
@@ -328,8 +306,7 @@ public class QRProtoSocket {
           int contentLength = content.length();
 
           int sequenceNumber = ByteBuffer.wrap(Base64.getDecoder().decode(content.substring(0, 8))).getInt();
-          boolean acknowledgementMessage = content.substring(contentLength - 6, contentLength - 4).equals(
-              AcknowledgementMessage.CONTINUE); // TODO: \e is currently ignored
+          boolean acknowledgementMessage = content.substring(contentLength - 6, contentLength - 4).equals(AcknowledgementMessage.CONTINUE);
           byte checksum = Base64.getDecoder().decode(content.substring(contentLength - 4))[0];
 
           if(checksum != QRCode.checksum(content.substring(0, contentLength - 4))) {
@@ -338,9 +315,10 @@ public class QRProtoSocket {
           }
 
           if(sequenceNumber != 0) {
-            if(sequenceNumber != currentSequenceNumber + 1)
-              continue; //not necessary to handle since wrong sequenceNumber are never acknowledged
-            else {
+            if(sequenceNumber != currentSequenceNumber + 1) {
+              ackToSend = currentSequenceNumber; // TODO: this sends very many acks, maybe too many?
+              continue;
+            } else {
               synchronized(this) {
                 currentSequenceNumber++;
               }
@@ -362,8 +340,9 @@ public class QRProtoSocket {
           if(contentLength > 0)
             System.out.println("Content: " + content);
 
-          for(Message message: messages)
-            parseMessage(message.unescape(), sequenceNumber, acknowledgementMessage);
+          if(!acknowledgementMessage)
+            for(Message message: messages)
+              parseMessage(message.unescape(), sequenceNumber);
         }
       } while(true);
     }
