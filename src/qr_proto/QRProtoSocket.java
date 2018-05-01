@@ -143,20 +143,22 @@ public class QRProtoSocket {
     } else if(contentLength >= 6 && content.substring(0, 2).equals("\\m")) { // socket message
         String msg = content.substring(3, 6);
 
-        if(msg.equals("ACK")) {
+        if(msg.equals("ACK") && contentLength > 6) {
           Integer handleACK = ByteBuffer.wrap(Base64.getDecoder().decode(content.substring(7, 15))).getInt();
 
-          for(QRCode code: sentQRCodes)
-            if(code.getSequenceNumber() <= handleACK)
-              sentQRCodes.remove(code);
+          synchronized(this) {
+            for(QRCode code: sentQRCodes)
+              if(code.getSequenceNumber() <= handleACK)
+                sentQRCodes.remove(code);
 
-          if(sentQRCodes.isEmpty()) {
-            synchronized(this) {
-              canSend = true;
+            if(sentQRCodes.isEmpty()) {
+              synchronized(this) {
+                canSend = true;
+              }
+            } else {
+              System.err.println("Messages have been resent!");
+              priorityQueue.addAll(sentQRCodes);
             }
-          } else {
-            System.err.println("Messages have been resent!");
-            priorityQueue.addAll(sentQRCodes);
           }
         } else if(msg.equals("FIN")) {
           disconnected();
@@ -261,8 +263,10 @@ public class QRProtoSocket {
 
     private void sendCode(QRCode qrCode) {
       panel.displayQRCode(qrCode);
-      if(qrCode.getSequenceNumber() > 0)
-        sentQRCodes.add(qrCode);
+      synchronized(this) {
+        if(qrCode.getSequenceNumber() > 0)
+          sentQRCodes.add(qrCode);
+      }
 
       if(qrCode.getSequenceNumber() == 0 || qrCode.getAcknowledgementMessage().equals(AcknowledgementMessage.CONTINUE)) {
         try {
