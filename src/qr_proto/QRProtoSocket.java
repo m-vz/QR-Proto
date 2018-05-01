@@ -4,10 +4,7 @@ import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.image.BufferedImage;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.LinkedList;
-import java.util.Vector;
+import java.util.*;
 
 import com.github.sarxos.webcam.Webcam;
 import com.google.zxing.*;
@@ -146,19 +143,15 @@ public class QRProtoSocket {
         if(msg.equals("ACK") && contentLength > 6) {
           Integer handleACK = ByteBuffer.wrap(Base64.getDecoder().decode(content.substring(7, 15))).getInt();
 
-          synchronized(this) {
-            for(QRCode code: sentQRCodes)
-              if(code.getSequenceNumber() <= handleACK)
-                sentQRCodes.remove(code);
+          sentQRCodes.removeIf(o -> o.getSequenceNumber() <= handleACK);
 
-            if(sentQRCodes.isEmpty()) {
-              synchronized(this) {
-                canSend = true;
-              }
-            } else {
-              System.err.println("Messages have been resent!");
-              priorityQueue.addAll(sentQRCodes);
+          if(sentQRCodes.isEmpty()) {
+            synchronized(this) {
+              canSend = true;
             }
+          } else {
+            System.err.println("Messages have been resent!");
+            priorityQueue.addAll(sentQRCodes);
           }
         } else if(msg.equals("FIN")) {
           disconnected();
@@ -263,10 +256,8 @@ public class QRProtoSocket {
 
     private void sendCode(QRCode qrCode) {
       panel.displayQRCode(qrCode);
-      synchronized(this) {
-        if(qrCode.getSequenceNumber() > 0)
-          sentQRCodes.add(qrCode);
-      }
+      if(qrCode.getSequenceNumber() > 0)
+        sentQRCodes.add(qrCode);
 
       if(qrCode.getSequenceNumber() == 0 || qrCode.getAcknowledgementMessage().equals(AcknowledgementMessage.CONTINUE)) {
         try {
