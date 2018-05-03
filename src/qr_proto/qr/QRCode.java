@@ -15,13 +15,6 @@ import java.util.Map;
 import qr_proto.Message;
 
 public class QRCode {
-  public static final QRCode
-      SYN = new QRCode(0, new Message("\\m SYN", true)),
-      ACK = new QRCode(0, new Message("\\m ACK", true)),
-      SCK = new QRCode(0, new Message("\\m SCK", true)),
-      FIN = new QRCode(0, new Message("\\m FIN", true));
-  private ArrayList<Message> messages = new ArrayList<>();
-
   private static QRCodeWriter qrCodeWriter = new QRCodeWriter();
   private static Map<EncodeHintType, Object> hintMap = new EnumMap<>(EncodeHintType.class);
   static {
@@ -30,35 +23,56 @@ public class QRCode {
     hintMap.put(EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.L);
   }
 
-  private int sequenceNumber;
-  public QRCode(int sequenceNumber, ArrayList<Message> messages){
-    this (sequenceNumber, messages, AcknowledgementMessage.END);
-  }
+  private int sequenceNumber = -1;
+  private QRCodeType type;
   private AcknowledgementMessage acknowledgementMessage;
+  private ArrayList<Message> messages = new ArrayList<>();
 
-  public QRCode(int sequenceNumber, ArrayList<Message> messages, AcknowledgementMessage acknowledgementMessage) {
-    this.sequenceNumber = sequenceNumber;
+  public QRCode(ArrayList<Message> messages, AcknowledgementMessage acknowledgementMessage) {
+    this.type = QRCodeType.MSG;
+    this.acknowledgementMessage = acknowledgementMessage;
     this.messages.addAll(messages);
+  }
+
+  public QRCode(ArrayList<Message> messages) {
+    this(messages, AcknowledgementMessage.END);
+  }
+
+  public QRCode(Message message, AcknowledgementMessage acknowledgementMessage) {
+    this.type = QRCodeType.MSG;
     this.acknowledgementMessage = acknowledgementMessage;
-  }
-
-  public QRCode(int sequenceNumber, Message message){
-    this (sequenceNumber, message, AcknowledgementMessage.END);
-  }
-
-  public QRCode(int sequenceNumber, Message message, AcknowledgementMessage acknowledgementMessage) {
-    this.sequenceNumber = sequenceNumber;
     this.messages.add(message);
-    this.acknowledgementMessage = acknowledgementMessage;
+  }
+
+  public QRCode(Message message) {
+    this(message, AcknowledgementMessage.END);
+  }
+
+  public QRCode(int sequenceNumberToAcknowledge) {
+    this.type = QRCodeType.ACK;
+    this.acknowledgementMessage = AcknowledgementMessage.END;
+    this.messages.add(new Message(String.valueOf(sequenceNumberToAcknowledge), true));
+  }
+
+  public QRCode(QRCodeType type) {
+    if(type.equals(QRCodeType.MSG))
+      throw new IllegalArgumentException("Primitive qr codes cannot have type MSG.");
+
+    this.type = type;
+    this.acknowledgementMessage = AcknowledgementMessage.END;
   }
 
   public BitMatrix generateBitMatrix() {
     StringBuilder qrMessage = new StringBuilder();
 
-    qrMessage.append(Base64.getEncoder().encodeToString(ByteBuffer.allocate(4).putInt(sequenceNumber).array())); // adds 8 characters
+    ByteBuffer header = ByteBuffer.allocate(6);
+    header.putInt(sequenceNumber);
+    header.put(type.getCode());
+    header.put(acknowledgementMessage.toByte());
+
+    qrMessage.append(Base64.getEncoder().encodeToString(header.array())); // adds 8 characters
     for(Message message: messages)
       qrMessage.append(message.escape());
-    qrMessage.append(acknowledgementMessage); // adds 2 characters
     qrMessage.append(Base64.getEncoder().encodeToString(new byte[]{checksum(qrMessage.toString())})); // adds 4 characters
 
     try {
@@ -67,10 +81,6 @@ public class QRCode {
       e.printStackTrace();
       return null;
     }
-  }
-
-  public ArrayList<Message> getMessages() {
-    return messages;
   }
 
   public static byte checksum(String _message) {
@@ -86,8 +96,24 @@ public class QRCode {
     return checksum;
   }
 
+  public void setSequenceNumber(int sequenceNumber) {
+    this.sequenceNumber = sequenceNumber;
+  }
+
   public int getSequenceNumber() {
     return sequenceNumber;
+  }
+
+  public QRCodeType getType() {
+    return type;
+  }
+
+  public AcknowledgementMessage getAcknowledgementMessage() {
+    return acknowledgementMessage;
+  }
+
+  public ArrayList<Message> getMessages() {
+    return messages;
   }
 
   @Override
@@ -105,13 +131,42 @@ public class QRCode {
     }
 
     @Override
-    public String toString() {
+    public String toString() { // TODO: remove this (with care)
       if (cont) return "\\c";
       else return "\\e";
     }
+
+    byte toByte() {
+      return cont ? (byte) 1 /* ~= CONTINUE */ : (byte) 0 /* ~= END */;
+    }
   }
 
-  public AcknowledgementMessage getAcknowledgementMessage() {
-    return acknowledgementMessage;
+  public enum QRCodeType {
+    SYN(0), ACK(1), SCK(2), FIN(3), MSG(4);
+
+    private final byte code;
+
+    QRCodeType(int code) {
+      this.code = (byte) code;
+    }
+
+    public static QRCodeType fromByte(byte i) {
+      switch(i) {
+        case 0:
+          return SYN;
+        case 1:
+          return ACK;
+        case 2:
+          return SCK;
+        case 3:
+          return FIN;
+        default:
+          return MSG;
+      }
+    }
+
+    byte getCode() {
+      return code;
+    }
   }
 }
