@@ -227,10 +227,9 @@ public class QRProtoSocket {
 
         synchronized (this) {
           if(ackToSend >= 0) {
-            System.out.println("Adding ack with number " + ackToSend + " to priority queue.");
+            System.out.println("Adding ack with number-to-verify " + ackToSend + " to priority queue.");
             priorityQueue.add(new QRCode(ackToSend));
 
-            canSend = true;
             ackToSend = -1;
           }
         }
@@ -245,6 +244,7 @@ public class QRProtoSocket {
                 canSend = false;
 
               currentSequenceNumber++;
+              System.err.println(currentSequenceNumber + ", sending prio msg");
             }
 
             code.setSequenceNumber(currentSequenceNumber);
@@ -265,6 +265,7 @@ public class QRProtoSocket {
                   canSend = false;
 
                 currentSequenceNumber++;
+                System.err.println(currentSequenceNumber + ", sending msg");
               }
 
               code.setSequenceNumber(currentSequenceNumber);
@@ -346,13 +347,18 @@ public class QRProtoSocket {
             continue; // not necessary to handle since wrong checksum are never acknowledged
           }
 
-          if(sequenceNumber != currentSequenceNumber + 1) {
-            if(type.equals(QRCodeType.MSG))
-              ackToSend = currentSequenceNumber; // TODO: this sends very many acks, maybe too many?
+          if(sequenceNumber < currentSequenceNumber + 1) // a message has been read twice
+            continue; // ignore all messages that have been read before
+          else if(sequenceNumber > currentSequenceNumber + 1) { // a message has been lost
+            if(type.equals(QRCodeType.MSG) && ackToSend < 0) {
+              System.err.println("Received incorrect sequence number. Sending ACK for sequence number " + ackToSend + ".");
+              ackToSend = currentSequenceNumber;
+            }
             continue;
-          } else {
+          } else { // a new message has been received
             synchronized(this) {
-              currentSequenceNumber = sequenceNumber;
+              currentSequenceNumber++;
+              System.err.println(currentSequenceNumber + ", receiving");
             }
           }
 
