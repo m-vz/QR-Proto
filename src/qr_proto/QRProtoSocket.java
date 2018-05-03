@@ -25,7 +25,7 @@ public class QRProtoSocket {
   private static final int SENDER_SLEEP_TIME = 10, RECEIVER_SLEEP_TIME = 10, DISPLAY_TIME = 200;
 
   private volatile boolean connecting = false, connected = false, canSend = true;
-  private volatile int currentSequenceNumber = 0;
+  private volatile int currentSequenceNumber = 0, currentSequenceNumberTMP = 0;
   private LinkedList<Message> messageQueue;
   private LinkedList<QRCode> sentQRCodes, priorityQueue;
   private int ackToSend = -1;
@@ -96,7 +96,7 @@ public class QRProtoSocket {
     System.out.println("Disconnected.");
   }
 
-  private void parseMessage(Message message, QRCodeType type, int sequenceNumber) {
+  private void parseMessage(Message message, QRCodeType type) {
     String content = message.getMessage();
     int contentLength = content.length();
 
@@ -104,7 +104,7 @@ public class QRProtoSocket {
       switch(type) {
         case MSG: // content message
           synchronized (this) {
-            ackToSend = sequenceNumber;
+            ackToSend = currentSequenceNumber;
           }
 
           System.out.println("Received content message:\n" + content);
@@ -118,6 +118,9 @@ public class QRProtoSocket {
           Integer acknowledgedSequenceNumber = ByteBuffer.wrap(Base64.getDecoder().decode(content.substring(0, 8))).getInt();
 
           sentQRCodes.removeIf(o -> o.getSequenceNumber() <= acknowledgedSequenceNumber);
+
+          currentSequenceNumber = acknowledgedSequenceNumber;
+          currentSequenceNumberTMP = acknowledgedSequenceNumber;
 
           if(sentQRCodes.isEmpty()) {
             synchronized(this) {
@@ -151,6 +154,8 @@ public class QRProtoSocket {
             System.out.println("Connected.");
             break;
           case ACK: // connection has been established
+            currentSequenceNumber = currentSequenceNumberTMP;
+
             connecting = false;
             connected = true;
             synchronized(this) {
@@ -242,12 +247,9 @@ public class QRProtoSocket {
               if(code.getType().equals(QRCodeType.SYN) || // SYNs need to wait for SCK
                   code.getType().equals(QRCodeType.MSG) && code.getAcknowledgementMessage().equals(AcknowledgementMessage.END)) // MSGs need to wait for ACK if END
                 canSend = false;
-
-              currentSequenceNumber++;
-              System.err.println(currentSequenceNumber + ", sending prio msg");
             }
 
-            code.setSequenceNumber(currentSequenceNumber);
+            incrementSequenceNumber(code);
 
             System.out.println("Sending priority qr code with type " + code.getType() +
                 ", sequence number " + code.getSequenceNumber() +
@@ -263,12 +265,9 @@ public class QRProtoSocket {
               synchronized(this) {
                 if(acknowledgementMessage.equals(AcknowledgementMessage.END))
                   canSend = false;
-
-                currentSequenceNumber++;
-                System.err.println(currentSequenceNumber + ", sending msg");
               }
 
-              code.setSequenceNumber(currentSequenceNumber);
+              incrementSequenceNumber(code);
 
               System.out.println("Sending qr code with sequence number " + currentSequenceNumber +
                   " and " + (code.getMessages().isEmpty() ? "no message." : "messages:"));
@@ -284,6 +283,19 @@ public class QRProtoSocket {
           }
         }
       } while(true);
+    }
+
+    private void incrementSequenceNumber(QRCode code) {
+      synchronized(this) {
+        if(code.getType().equals(QRCodeType.SYN) || code.getType().equals(QRCodeType.MSG)) {
+          currentSequenceNumberTMP++;
+          code.setSequenceNumber(currentSequenceNumberTMP);
+        } else {
+          currentSequenceNumber++;
+          currentSequenceNumberTMP++;
+          code.setSequenceNumber(currentSequenceNumber);
+        }
+      }
     }
 
     private void sendCode(QRCode qrCode) {
@@ -360,8 +372,8 @@ public class QRProtoSocket {
           } else { // a new message has been received
             synchronized(this) {
               borked = false;
-              currentSequenceNumber++;
-              System.err.println(currentSequenceNumber + ", receiving");
+              if(!type.equals(QRCodeType.ACK))
+                currentSequenceNumber++;
             }
           }
 
@@ -384,10 +396,10 @@ public class QRProtoSocket {
           if(acknowledgementMessage.equals(AcknowledgementMessage.END)) {
             if(remainingContent.length() == 0 && messages.isEmpty()) {
               System.out.println("Received code with sequence number " + sequenceNumber + " and type " + type);
-              parseMessage(new Message("", true), type, sequenceNumber);
+              parseMessage(new Message("", true), type);
             } else {
               for (Message message : messages)
-                parseMessage(message.unescape(), type, sequenceNumber);
+                parseMessage(message.unescape(), type);
               messages = new Vector<>();
             }
           }
