@@ -362,12 +362,15 @@ public class QRProtoSocket {
           if(content.length() > 0)
             System.out.println("Content: " + content);
 
-          if(remainingContent.length() == 0 && messages.isEmpty())
-            parseMessage(new Message("", true), type, sequenceNumber);
-          else if(acknowledgementMessage.equals(AcknowledgementMessage.END)) {
-            for (Message message : messages)
-              parseMessage(message.unescape(), type, sequenceNumber);
-            messages = new Vector<>();
+
+          if(acknowledgementMessage.equals(AcknowledgementMessage.END)) {
+            if(remainingContent.length() == 0 && messages.isEmpty())
+              parseMessage(new Message("", true), type, sequenceNumber);
+            else{
+              for (Message message : messages)
+                parseMessage(message.unescape(), type, sequenceNumber);
+              messages = new Vector<>();
+            }
           }
 
         }
