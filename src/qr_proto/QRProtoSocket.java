@@ -189,7 +189,7 @@ public class QRProtoSocket {
 
               incrementSequenceNumber(code);
 
-              System.out.println("Sending qr code with sequence number " + currentSequenceNumber +
+              System.out.println("Sending qr code with sequence number " + code.getSequenceNumber() +
                   " and " + (code.getMessages().isEmpty() ? "no message." : "messages:"));
               for(Message message: code.getMessages())
                 System.out.println(message.getMessage());
@@ -283,14 +283,13 @@ public class QRProtoSocket {
             continue; // not necessary to handle since wrong checksum are never acknowledged
           }
 
-          if(sequenceNumber < currentSequenceNumber + 1) { // a message has been read twice
-            System.err.println("Received duplicate code with sequence number " + sequenceNumber + ", ignoring.");
+          if(sequenceNumber < currentSequenceNumber + currentSequenceNumberOffset + 1) { // a message has been read twice
             continue; // ignore all messages that have been read before
-          } else if(sequenceNumber > currentSequenceNumber + 1) { // a message has been lost
+          } else if(sequenceNumber > currentSequenceNumber + currentSequenceNumberOffset + 1) { // a message has been lost
             System.err.println("Received code with incorrect sequence number " + sequenceNumber + ".");
             if(type.equals(QRCodeType.MSG) && !borked) {
               borked = true;
-              System.err.println("Sending ACK for sequence number " + currentSequenceNumber + ".");
+              System.err.println("Sending ACK for sequence number " + currentSequenceNumber + " (current offset is " + currentSequenceNumberOffset + ").");
               ackToSend = currentSequenceNumber;
             }
             continue;
@@ -358,6 +357,7 @@ public class QRProtoSocket {
             if(sentQRCodes.isEmpty()) {
               synchronized(this) {
                 canSend = true;
+                currentSequenceNumber++;
               }
             } else {
               System.err.println("Messages have been resent from sequence number " + (acknowledgedSequenceNumber + 1));
@@ -374,7 +374,7 @@ public class QRProtoSocket {
           switch(type) {
             case SCK: // reply with ack
               synchronized(this) {
-                currentSequenceNumber = currentSequenceNumber + currentSequenceNumberOffset;
+                currentSequenceNumber = currentSequenceNumber + currentSequenceNumberOffset + 1;
                 currentSequenceNumberOffset = 0;
               }
 
@@ -393,7 +393,7 @@ public class QRProtoSocket {
               break;
             case ACK: // connection has been established
               synchronized(this) {
-                currentSequenceNumber = currentSequenceNumber + currentSequenceNumberOffset;
+                currentSequenceNumber = currentSequenceNumber + currentSequenceNumberOffset + 1;
                 currentSequenceNumberOffset = 0;
               }
 
