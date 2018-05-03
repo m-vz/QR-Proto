@@ -241,6 +241,7 @@ public class QRProtoSocket {
     private Vector<Message> messages = new Vector<>();
     private String remainingContent = "";
     private boolean borked = false;
+    private int lastErrorSequenceNumber = 0;
 
     @Override
     public void run() {
@@ -283,7 +284,8 @@ public class QRProtoSocket {
             continue; // not necessary to handle since wrong checksum are never acknowledged
           }
 
-          if(sequenceNumber < currentSequenceNumber + currentSequenceNumberOffset + 1 && !type.equals(QRCodeType.ERR)) { // a message has been read twice (but is no ERR)
+          if(sequenceNumber < currentSequenceNumber + currentSequenceNumberOffset + 1 ||
+              type.equals(QRCodeType.ERR) && sequenceNumber <= lastErrorSequenceNumber) { // a message has been read twice
             continue; // ignore all messages that have been read before
           } else if(sequenceNumber > currentSequenceNumber + currentSequenceNumberOffset + 1) { // a message has been lost
             System.err.println("Received code with incorrect sequence number " + sequenceNumber + ".");
@@ -311,10 +313,10 @@ public class QRProtoSocket {
           if(acknowledgementMessage.equals(AcknowledgementMessage.END)) {
             if(remainingContent.length() == 0 && messages.isEmpty()) {
               System.out.println("Received code with sequence number " + sequenceNumber + " and type " + type);
-              parseMessage(new Message("", true), type);
+              parseMessage(new Message("", true), type, sequenceNumber);
             } else {
               for (Message message : messages)
-                parseMessage(message.unescape(), type);
+                parseMessage(message.unescape(), type, sequenceNumber);
               messages = new Vector<>();
             }
           } else {
@@ -326,7 +328,7 @@ public class QRProtoSocket {
       } while(true);
     }
 
-    private void parseMessage(Message message, QRCodeType type) {
+    private void parseMessage(Message message, QRCodeType type, int sequenceNumber) {
       String content = message.getMessage();
       int contentLength = content.length();
 
@@ -358,6 +360,7 @@ public class QRProtoSocket {
           case ERR:
             Integer acknowledgedSequenceNumber = ByteBuffer.wrap(Base64.getDecoder().decode(content.substring(0, 8))).getInt();
 
+            lastErrorSequenceNumber = sequenceNumber;
             synchronized(this) {
               currentSequenceNumber = acknowledgedSequenceNumber;
               currentSequenceNumberOffset = 0;
