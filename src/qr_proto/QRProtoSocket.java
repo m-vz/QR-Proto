@@ -28,7 +28,7 @@ public class QRProtoSocket {
   private volatile int currentSequenceNumber = 0, currentSequenceNumberOffset = 0;
   private LinkedList<Message> messageQueue;
   private LinkedList<QRCode> sentQRCodes, priorityQueue;
-  private int ackToSend = -1;
+  private QRCode ackToSend = null;
   private QRProtoPanel panel;
   private AbstractAction connectedCallback = null, disconnectedCallback = null;
   private Webcam webcam;
@@ -89,7 +89,7 @@ public class QRProtoSocket {
     messageQueue = new LinkedList<>();
     sentQRCodes = new LinkedList<>();
     priorityQueue = new LinkedList<>();
-    ackToSend = -1;
+    ackToSend = null;
 
     if(disconnectedCallback != null)
       disconnectedCallback.actionPerformed(new ActionEvent(this, 0, "disconnected")); // TODO: can the action event be composed of more useful information?
@@ -150,11 +150,11 @@ public class QRProtoSocket {
         }
 
         synchronized (this) {
-          if(ackToSend >= 0) {
+          if(ackToSend != null) {
             System.out.println("Adding ACK with number-to-verify " + ackToSend + " to priority queue.");
-            priorityQueue.add(new QRCode(ackToSend));
+            priorityQueue.add(ackToSend);
 
-            ackToSend = -1;
+            ackToSend = null;
           }
         }
 
@@ -283,14 +283,14 @@ public class QRProtoSocket {
             continue; // not necessary to handle since wrong checksum are never acknowledged
           }
 
-          if(sequenceNumber < currentSequenceNumber + currentSequenceNumberOffset + 1) { // a message has been read twice
+          if(sequenceNumber < currentSequenceNumber + currentSequenceNumberOffset + 1 && !type.equals(QRCodeType.ERR)) { // a message has been read twice (but is no ERR)
             continue; // ignore all messages that have been read before
           } else if(sequenceNumber > currentSequenceNumber + currentSequenceNumberOffset + 1) { // a message has been lost
             System.err.println("Received code with incorrect sequence number " + sequenceNumber + ".");
             if(type.equals(QRCodeType.MSG) && !borked) {
               borked = true;
               System.err.println("Sending ACK for sequence number " + currentSequenceNumber + " (current offset is " + currentSequenceNumberOffset + ").");
-              ackToSend = currentSequenceNumber;
+              ackToSend = new QRCode(currentSequenceNumber, true);
             }
             continue;
           } else // a new message has been received
@@ -306,10 +306,7 @@ public class QRProtoSocket {
           }
 
           remainingContent = content.substring(current); // this is the remaining content that is not a complete message
-          if(remainingContent.length() > 0)
-            System.out.println("Remaining content: " + remainingContent);
-          if(content.length() > 0)
-            System.out.println("Content: " + content);
+          System.out.println("Received code with sequence number " + sequenceNumber + (content.length() > 0 ? " with content: " + content : " without any content."));
 
           if(acknowledgementMessage.equals(AcknowledgementMessage.END)) {
             if(remainingContent.length() == 0 && messages.isEmpty()) {
@@ -319,6 +316,10 @@ public class QRProtoSocket {
               for (Message message : messages)
                 parseMessage(message.unescape(), type);
               messages = new Vector<>();
+            }
+          } else {
+            synchronized(this) {
+              currentSequenceNumber++;
             }
           }
         }
@@ -334,7 +335,7 @@ public class QRProtoSocket {
           case MSG: // content message
             synchronized (this) {
               currentSequenceNumber++;
-              ackToSend = currentSequenceNumber;
+              ackToSend = new QRCode(currentSequenceNumber, false);
             }
 
             System.out.println("Received content message:\n" + content);
@@ -345,31 +346,34 @@ public class QRProtoSocket {
               break;
             }
 
-            Integer acknowledgedSequenceNumber = ByteBuffer.wrap(Base64.getDecoder().decode(content.substring(0, 8))).getInt();
+            synchronized(this) {
+              Integer acknowledgedSequenceNumber = ByteBuffer.wrap(Base64.getDecoder().decode(content.substring(0, 8))).getInt();
+              currentSequenceNumber = acknowledgedSequenceNumber + 1;
+              currentSequenceNumberOffset = 0;
+              canSend = true;
+            }
 
-            sentQRCodes.removeIf(o -> o.getSequenceNumber() <= acknowledgedSequenceNumber);
+            sentQRCodes.clear();
+            break;
+          case ERR:
+            Integer acknowledgedSequenceNumber = ByteBuffer.wrap(Base64.getDecoder().decode(content.substring(0, 8))).getInt();
 
             synchronized(this) {
               currentSequenceNumber = acknowledgedSequenceNumber;
               currentSequenceNumberOffset = 0;
             }
 
-            if(sentQRCodes.isEmpty()) {
-              synchronized(this) {
-                canSend = true;
-                currentSequenceNumber++;
-              }
-            } else {
-              System.err.println("Messages have been resent from sequence number " + (acknowledgedSequenceNumber + 1));
+            sentQRCodes.removeIf(o -> o.getSequenceNumber() <= acknowledgedSequenceNumber);
 
-              priorityQueue.addAll(sentQRCodes);
-            }
+            System.err.println("Messages have been resent from sequence number " + (acknowledgedSequenceNumber + 1) + " (a total of " + sentQRCodes.size() + " codes).");
+
+            priorityQueue.addAll(sentQRCodes);
             break;
           case FIN:
             disconnected();
             break;
         }
-      } else {
+      } else { // TODO: maybe handle ERR cases as well?
         if(connecting) {
           switch(type) {
             case SCK: // reply with ack
