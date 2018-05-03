@@ -284,21 +284,23 @@ public class QRProtoSocket {
             continue; // not necessary to handle since wrong checksum are never acknowledged
           }
 
-          if(type.equals(QRCodeType.ERR) && sequenceNumber <= lastErrorSequenceNumber) // an ERR message has been read twice
-            continue; // ignore all ERR messages that have been read before
-
-          if(sequenceNumber <= currentSequenceNumber + currentSequenceNumberOffset) { // a message has been read twice
-            continue; // ignore all messages that have been read before
-          } else if(sequenceNumber > currentSequenceNumber + currentSequenceNumberOffset + 1) { // a message has been lost
-            System.err.println("Received code with incorrect sequence number " + sequenceNumber + ".");
-            if(type.equals(QRCodeType.MSG) && !borked) {
-              borked = true;
-              System.err.println("Sending ACK for sequence number " + currentSequenceNumber + " (current offset is " + currentSequenceNumberOffset + ").");
-              ackToSend = new QRCode(currentSequenceNumber, true);
-            }
-            continue;
-          } else // a new message has been received
-            borked = false;
+          if(type.equals(QRCodeType.ERR)) {
+            if(sequenceNumber <= lastErrorSequenceNumber) // an ERR message has been read twice
+              continue; // ignore all ERR messages that have been read before
+          } else {
+            if(sequenceNumber <= currentSequenceNumber + currentSequenceNumberOffset) { // a message has been read twice
+              continue; // ignore all messages that have been read before
+            } else if(sequenceNumber > currentSequenceNumber + currentSequenceNumberOffset + 1) { // a message has been lost
+              System.err.println("Received code with incorrect sequence number " + sequenceNumber + ".");
+              if(type.equals(QRCodeType.MSG) && !borked) {
+                borked = true;
+                System.err.println("Sending ACK for sequence number " + currentSequenceNumber + " (current offset is " + currentSequenceNumberOffset + ").");
+                ackToSend = new QRCode(currentSequenceNumber, true);
+              }
+              continue;
+            } else // a new message has been received
+              borked = false;
+          }
 
           String content = remainingContent + rawContent.substring(HEADER_SIZE, rawContentLength - CHECKSUM_SIZE); // concat the remaining content from the last message
 
