@@ -5,6 +5,7 @@ import java.awt.event.ActionEvent;
 import java.awt.image.BufferedImage;
 import java.nio.ByteBuffer;
 import java.util.*;
+import java.util.function.Function;
 
 import com.github.sarxos.webcam.Webcam;
 import com.google.zxing.*;
@@ -27,7 +28,7 @@ public class QRProtoSocket {
   private volatile boolean connecting = false, connected = false, canSend = true;
   private volatile int currentSequenceNumber = 0, currentSequenceNumberOffset = 0, lastErrorSequenceNumber = 0;
   private LinkedList<Message> messageQueue;
-  private LinkedList<QRCode> sentQRCodes, priorityQueue;
+  private LinkedList<QRCode> sentQRCodes, priorityQueue, errorQueue;
   private QRCode ackToSend = null;
   private QRProtoPanel panel;
   private AbstractAction connectedCallback = null, disconnectedCallback = null;
@@ -38,6 +39,7 @@ public class QRProtoSocket {
     messageQueue = new LinkedList<>();
     sentQRCodes = new LinkedList<>();
     priorityQueue = new LinkedList<>();
+    errorQueue = new LinkedList<>();
 
     panel = new QRProtoPanel(panelSize);
 
@@ -89,6 +91,7 @@ public class QRProtoSocket {
     messageQueue = new LinkedList<>();
     sentQRCodes = new LinkedList<>();
     priorityQueue = new LinkedList<>();
+    errorQueue = new LinkedList<>();
     ackToSend = null;
 
     if(disconnectedCallback != null)
@@ -159,13 +162,14 @@ public class QRProtoSocket {
         }
 
         if(canSend) {
+          QRCode code = null;
+
           if(!priorityQueue.isEmpty()) {
-            QRCode code = priorityQueue.pop();
+            code = priorityQueue.pop();
 
             synchronized(this) {
               if(code.getType().equals(QRCodeType.SYN) || // SYNs need to wait for SCK
-                  code.getType().equals(QRCodeType.SCK) || // SCKs need to wait for ACK
-                  code.getType().equals(QRCodeType.MSG) && code.getAcknowledgementMessage().equals(AcknowledgementMessage.END)) // MSGs need to wait for ACK if END
+                  code.getType().equals(QRCodeType.SCK)) // SCKs need to wait for ACK
                 canSend = false;
             }
 
@@ -176,14 +180,29 @@ public class QRProtoSocket {
                 " and " + (code.getMessages().isEmpty() ? "no message." : "messages:"));
             for(Message message: code.getMessages())
               System.out.println(message.getMessage());
+          } else if(!errorQueue.isEmpty()) {
+            code = errorQueue.pop();
 
-            sendCode(code);
+            synchronized(this) {
+              if(code.getType().equals(QRCodeType.MSG) && code.getAcknowledgementMessage().equals(AcknowledgementMessage.END)) // MSGs need to wait for ACK if END
+                canSend = false;
+            }
 
-            if(priorityQueue.isEmpty())
-              lastErrorSequenceNumber = 0;
+            incrementSequenceNumber(code);
+
+            System.out.println("Sending error qr code with type " + code.getType() +
+                ", sequence number " + code.getSequenceNumber() +
+                " and " + (code.getMessages().isEmpty() ? "no message." : "messages:"));
+            for(Message message: code.getMessages())
+              System.out.println(message.getMessage());
+
+            synchronized(this) {
+              if(errorQueue.isEmpty())
+                lastErrorSequenceNumber = 0;
+            }
           } else if(!messages.isEmpty()) {
             if(remainingBufferSize <= 0 || (System.currentTimeMillis() - lastTime) >= DISPLAY_TIME) {
-              QRCode code = new QRCode(messages, acknowledgementMessage);
+              code = new QRCode(messages, acknowledgementMessage);
 
               synchronized(this) {
                 if(acknowledgementMessage.equals(AcknowledgementMessage.END))
@@ -197,13 +216,14 @@ public class QRProtoSocket {
               for(Message message: code.getMessages())
                 System.out.println(message.getMessage());
 
-              sendCode(code);
-
               messages.clear();
               remainingBufferSize = MAX_BUFFER_SIZE;
               lastTime = 0;
             }
           }
+
+          if(code != null)
+            sendCode(code);
         }
       } while(true);
     }
@@ -302,6 +322,10 @@ public class QRProtoSocket {
                 }
               }
               continue;
+            } else {
+              synchronized(this) {
+                ackToSend = null;
+              }
             }
           }
 
@@ -367,19 +391,22 @@ public class QRProtoSocket {
           case ERR:
             Integer acknowledgedSequenceNumber = ByteBuffer.wrap(Base64.getDecoder().decode(content.substring(0, 8))).getInt();
 
-            lastErrorSequenceNumber = sequenceNumber;
             synchronized(this) {
+              lastErrorSequenceNumber = sequenceNumber;
               currentSequenceNumber = acknowledgedSequenceNumber;
               currentSequenceNumberOffset = 0;
               canSend = true;
-            }
 
-            sentQRCodes.removeIf(o -> o.getSequenceNumber() <= acknowledgedSequenceNumber);
+              sentQRCodes.removeIf(o -> o.getSequenceNumber() <= acknowledgedSequenceNumber);
+            }
 
             System.err.println("Messages have been resent from sequence number " + (acknowledgedSequenceNumber + 1) + " (a total of " + sentQRCodes.size() + " codes).");
 
-            priorityQueue.addAll(sentQRCodes);
-            sentQRCodes.clear();
+            synchronized(this) {
+              for(int i = sentQRCodes.size() - 1; i >= 0; i--)
+                errorQueue.addFirst(sentQRCodes.get(i));
+              sentQRCodes.clear();
+            }
             break;
           case FIN:
             disconnected();

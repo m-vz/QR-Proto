@@ -149,25 +149,6 @@ public class QRCode {
       this.code = (byte) code;
     }
 
-
-
-    public static QRCodeType fromByte(byte i) {
-      switch(i) {
-        case 0:
-          return SYN;
-        case 1:
-          return ACK;
-        case 2:
-          return SCK;
-        case 3:
-          return FIN;
-        case 5:
-          return ERR;
-        default:
-          return MSG;
-      }
-    }
-
     byte getCode() {
       return code;
     }
@@ -189,6 +170,23 @@ public class QRCode {
           return "ERR";
         default:
           return "INVALID";
+      }
+    }
+
+    public static QRCodeType fromByte(byte i) {
+      switch(i) {
+        case 0:
+          return SYN;
+        case 1:
+          return ACK;
+        case 2:
+          return SCK;
+        case 3:
+          return FIN;
+        case 5:
+          return ERR;
+        default:
+          return MSG;
       }
     }
   }
