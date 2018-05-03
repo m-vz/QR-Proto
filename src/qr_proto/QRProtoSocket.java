@@ -31,7 +31,7 @@ public class QRProtoSocket {
   private int ackToSend = -1;
   private String remainingContent = "";
   private QRProtoPanel panel;
-  private AbstractAction connectedCallback = null;
+  private AbstractAction connectedCallback = null, disconnectedCallback = null;
   private Webcam webcam;
   private Thread senderThread, receiverThread;
 
@@ -56,7 +56,7 @@ public class QRProtoSocket {
     messageQueue.add(new Message(message, true));
   }
 
-  public void connect(AbstractAction callback) {
+  public void connect(AbstractAction connectedCallback, AbstractAction disconnectedCallback) {
     if(connected) {
       System.err.println("Already connected.");
       return;
@@ -64,14 +64,11 @@ public class QRProtoSocket {
 
     System.out.println("Connecting...");
 
-    connectedCallback = callback;
-    connecting = true;
+    this.connectedCallback = connectedCallback;
+    this.disconnectedCallback = disconnectedCallback;
+    this.connecting = true;
 
     priorityQueue.add(new QRCode(QRCode.QRCodeType.SYN));
-  }
-
-  public void setConnectedCallback(AbstractAction connectedCallback) {
-    this.connectedCallback = connectedCallback;
   }
 
   public void disconnect() {
@@ -95,6 +92,9 @@ public class QRProtoSocket {
     sentQRCodes = new LinkedList<>();
     priorityQueue = new LinkedList<>();
     ackToSend = -1;
+
+    if(disconnectedCallback != null)
+      disconnectedCallback.actionPerformed(new ActionEvent(this, 0, "disconnected")); // TODO: can the action event be composed of more useful information?
 
     System.out.println("Disconnected.");
   }
@@ -362,11 +362,11 @@ public class QRProtoSocket {
           if(content.length() > 0)
             System.out.println("Content: " + content);
 
-          if(acknowledgementMessage.equals(AcknowledgementMessage.END))
+          if(remainingContent.length() == 0 && messages.isEmpty())
+            parseMessage(new Message("", true), type, sequenceNumber);
+          else if(acknowledgementMessage.equals(AcknowledgementMessage.END))
             for(Message message: messages)
               parseMessage(message.unescape(), type, sequenceNumber);
-          else if(remainingContent.length() == 0 && messages.isEmpty())
-            parseMessage(new Message("", true), type, sequenceNumber);
         }
       } while(true);
     }
