@@ -25,7 +25,7 @@ public class QRProtoSocket {
   private static final int SENDER_SLEEP_TIME = 10, RECEIVER_SLEEP_TIME = 10, DISPLAY_TIME = 200;
 
   private volatile boolean connecting = false, connected = false, canSend = true;
-  private volatile int currentSequenceNumber = 0, currentSequenceNumberOffset = 0;
+  private volatile int currentSequenceNumber = 0, currentSequenceNumberOffset = 0, lastErrorSequenceNumber = 0;
   private LinkedList<Message> messageQueue;
   private LinkedList<QRCode> sentQRCodes, priorityQueue;
   private QRCode ackToSend = null;
@@ -178,6 +178,9 @@ public class QRProtoSocket {
               System.out.println(message.getMessage());
 
             sendCode(code);
+
+            if(priorityQueue.isEmpty())
+              lastErrorSequenceNumber = 0;
           } else if(!messages.isEmpty()) {
             if(remainingBufferSize <= 0 || (System.currentTimeMillis() - lastTime) >= DISPLAY_TIME) {
               QRCode code = new QRCode(messages, acknowledgementMessage);
@@ -213,6 +216,8 @@ public class QRProtoSocket {
           case MSG:
             currentSequenceNumberOffset++;
             break;
+          case ERR:
+            break;
           default:
             currentSequenceNumber++;
             break;
@@ -240,8 +245,6 @@ public class QRProtoSocket {
     private static final int HEADER_SIZE = 8, CHECKSUM_SIZE = 4;
     private Vector<Message> messages = new Vector<>();
     private String remainingContent = "";
-    private boolean borked = false;
-    private int lastErrorSequenceNumber = 0;
 
     @Override
     public void run() {
@@ -292,14 +295,14 @@ public class QRProtoSocket {
               continue; // ignore all messages that have been read before
             } else if(sequenceNumber > currentSequenceNumber + currentSequenceNumberOffset + 1) { // a message has been lost
               System.err.println("Received code with incorrect sequence number " + sequenceNumber + ".");
-              if(type.equals(QRCodeType.MSG) && !borked) {
-                borked = true;
+              if(type.equals(QRCodeType.MSG)) {
                 System.err.println("Sending ACK for sequence number " + currentSequenceNumber + " (current offset is " + currentSequenceNumberOffset + ").");
-                ackToSend = new QRCode(currentSequenceNumber, true);
+                synchronized(this) {
+                  ackToSend = new QRCode(currentSequenceNumber, true);
+                }
               }
               continue;
-            } else // a new message has been received
-              borked = false;
+            }
           }
 
           String content = remainingContent + rawContent.substring(HEADER_SIZE, rawContentLength - CHECKSUM_SIZE); // concat the remaining content from the last message
@@ -312,11 +315,11 @@ public class QRProtoSocket {
           }
 
           remainingContent = content.substring(current); // this is the remaining content that is not a complete message
-          System.out.println("Received code with sequence number " + sequenceNumber + (content.length() > 0 ? " with content: " + content : " without any content."));
+          System.out.println("Received code with type " + type + ", sequence number " + sequenceNumber + (content.length() > 0 ? " and content: " + content : " without any content."));
 
           if(acknowledgementMessage.equals(AcknowledgementMessage.END)) {
             if(remainingContent.length() == 0 && messages.isEmpty()) {
-              System.out.println("Received code with sequence number " + sequenceNumber + " and type " + type);
+              System.out.println("Received code with type " + type + " and sequence number " + sequenceNumber);
               parseMessage(new Message("", true), type, sequenceNumber);
             } else {
               for (Message message : messages)
@@ -368,6 +371,7 @@ public class QRProtoSocket {
             synchronized(this) {
               currentSequenceNumber = acknowledgedSequenceNumber;
               currentSequenceNumberOffset = 0;
+              canSend = true;
             }
 
             sentQRCodes.removeIf(o -> o.getSequenceNumber() <= acknowledgedSequenceNumber);
@@ -375,6 +379,7 @@ public class QRProtoSocket {
             System.err.println("Messages have been resent from sequence number " + (acknowledgedSequenceNumber + 1) + " (a total of " + sentQRCodes.size() + " codes).");
 
             priorityQueue.addAll(sentQRCodes);
+            sentQRCodes.clear();
             break;
           case FIN:
             disconnected();
