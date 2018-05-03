@@ -211,6 +211,7 @@ public class QRProtoSocket {
         synchronized (this) {
           if(ackToSend >= 0) {
             String ack = "\\m ACK " + Base64.getEncoder().encodeToString(ByteBuffer.allocate(4).putInt(ackToSend).array());
+            System.out.println("Adding ack with number " + ackToSend + " to priority queue.");
             priorityQueue.add(new QRCode(0, new Message(ack, true)));
 
             canSend = true;
