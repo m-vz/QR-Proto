@@ -55,7 +55,7 @@ public class QRProtoSocket {
     messageQueue.add(new Message(message, true));
   }
 
-  public void connect(AbstractAction connectedCallback, AbstractAction disconnectedCallback) {
+  public void connect() {
     if(connected) {
       System.err.println("Already connected.");
       return;
@@ -63,8 +63,6 @@ public class QRProtoSocket {
 
     System.out.println("Connecting...");
 
-    this.connectedCallback = connectedCallback;
-    this.disconnectedCallback = disconnectedCallback;
     this.connecting = true;
 
     priorityQueue.add(new QRCode(QRCode.QRCodeType.SYN));
@@ -173,6 +171,14 @@ public class QRProtoSocket {
         }
       }
     }
+  }
+
+  public void setConnectedCallback(AbstractAction connectedCallback) {
+    this.connectedCallback = connectedCallback;
+  }
+
+  public void setDisconnectedCallback(AbstractAction disconnectedCallback) {
+    this.disconnectedCallback = disconnectedCallback;
   }
 
   QRProtoPanel getPanel() {
