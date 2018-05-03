@@ -29,7 +29,6 @@ public class QRProtoSocket {
   private LinkedList<Message> messageQueue;
   private LinkedList<QRCode> sentQRCodes, priorityQueue;
   private int ackToSend = -1;
-  private String remainingContent = "";
   private QRProtoPanel panel;
   private AbstractAction connectedCallback = null, disconnectedCallback = null;
   private Webcam webcam;
@@ -294,6 +293,8 @@ public class QRProtoSocket {
 
   class QRProtoSocketReceiver implements Runnable {
     private static final int HEADER_SIZE = 8, CHECKSUM_SIZE = 4;
+    private Vector<Message> messages = new Vector<>();
+    private String remainingContent = "";
 
     @Override
     public void run() {
@@ -348,7 +349,6 @@ public class QRProtoSocket {
 
           String content = remainingContent + rawContent.substring(HEADER_SIZE, rawContentLength - CHECKSUM_SIZE); // concat the remaining content from the last message
 
-          Vector<Message> messages = new Vector<>();
           int current = 0, next;
           while((next = content.indexOf(Message.MESSAGE_END, current)) != -1) {
             next += Message.MESSAGE_END.length();
@@ -364,9 +364,12 @@ public class QRProtoSocket {
 
           if(remainingContent.length() == 0 && messages.isEmpty())
             parseMessage(new Message("", true), type, sequenceNumber);
-          else if(acknowledgementMessage.equals(AcknowledgementMessage.END))
-            for(Message message: messages)
+          else if(acknowledgementMessage.equals(AcknowledgementMessage.END)) {
+            for (Message message : messages)
               parseMessage(message.unescape(), type, sequenceNumber);
+            messages = new Vector<>();
+          }
+
         }
       } while(true);
     }
