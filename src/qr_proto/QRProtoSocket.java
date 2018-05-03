@@ -151,7 +151,7 @@ public class QRProtoSocket {
 
         synchronized (this) {
           if(ackToSend != null) {
-            System.out.println("Adding ACK with number-to-verify " + ackToSend + " to priority queue.");
+            System.out.println("Adding ACK with number-to-verify " + ByteBuffer.wrap(Base64.getDecoder().decode(ackToSend.getMessages().get(0).getMessage().substring(0, 8))).getInt() + " to priority queue.");
             priorityQueue.add(ackToSend);
 
             ackToSend = null;
@@ -284,8 +284,8 @@ public class QRProtoSocket {
             continue; // not necessary to handle since wrong checksum are never acknowledged
           }
 
-          if(sequenceNumber < currentSequenceNumber + currentSequenceNumberOffset + 1 ||
-              type.equals(QRCodeType.ERR) && sequenceNumber <= lastErrorSequenceNumber) { // a message has been read twice
+          if(sequenceNumber < currentSequenceNumber + currentSequenceNumberOffset + 1 &&
+              (!type.equals(QRCodeType.ERR) || sequenceNumber <= lastErrorSequenceNumber)) { // a message has been read twice
             continue; // ignore all messages that have been read before
           } else if(sequenceNumber > currentSequenceNumber + currentSequenceNumberOffset + 1) { // a message has been lost
             System.err.println("Received code with incorrect sequence number " + sequenceNumber + ".");
