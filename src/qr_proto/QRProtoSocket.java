@@ -227,7 +227,7 @@ public class QRProtoSocket {
 
         synchronized (this) {
           if(ackToSend >= 0) {
-            System.out.println("Adding ack with number-to-verify " + ackToSend + " to priority queue.");
+            System.out.println("Adding ACK with number-to-verify " + ackToSend + " to priority queue.");
             priorityQueue.add(new QRCode(ackToSend));
 
             ackToSend = -1;
@@ -305,6 +305,7 @@ public class QRProtoSocket {
     private static final int HEADER_SIZE = 8, CHECKSUM_SIZE = 4;
     private Vector<Message> messages = new Vector<>();
     private String remainingContent = "";
+    private boolean borked = false;
 
     @Override
     public void run() {
@@ -350,13 +351,15 @@ public class QRProtoSocket {
           if(sequenceNumber < currentSequenceNumber + 1) // a message has been read twice
             continue; // ignore all messages that have been read before
           else if(sequenceNumber > currentSequenceNumber + 1) { // a message has been lost
-            if(type.equals(QRCodeType.MSG) && ackToSend < 0) {
-              System.err.println("Received incorrect sequence number. Sending ACK for sequence number " + ackToSend + ".");
+            if(type.equals(QRCodeType.MSG) && !borked) {
+              borked = true;
+              System.err.println("Received incorrect sequence number. Sending ACK for sequence number " + currentSequenceNumber + ".");
               ackToSend = currentSequenceNumber;
             }
             continue;
           } else { // a new message has been received
             synchronized(this) {
+              borked = false;
               currentSequenceNumber++;
               System.err.println(currentSequenceNumber + ", receiving");
             }
