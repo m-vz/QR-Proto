@@ -365,6 +365,8 @@ public class QRProtoSocket {
           if(acknowledgementMessage.equals(AcknowledgementMessage.END))
             for(Message message: messages)
               parseMessage(message.unescape(), type, sequenceNumber);
+          else if(remainingContent.length() == 0 && messages.isEmpty())
+            parseMessage(new Message("", true), type, sequenceNumber);
         }
       } while(true);
     }

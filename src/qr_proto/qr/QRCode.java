@@ -63,6 +63,8 @@ public class QRCode {
   }
 
   public BitMatrix generateBitMatrix() {
+    // TODO: throw if sequence number is -1
+
     StringBuilder qrMessage = new StringBuilder();
 
     ByteBuffer header = ByteBuffer.allocate(6);
@@ -128,12 +130,6 @@ public class QRCode {
 
     AcknowledgementMessage(boolean cont) {
       this.cont = cont;
-    }
-
-    @Override
-    public String toString() { // TODO: remove this (with care)
-      if (cont) return "\\c";
-      else return "\\e";
     }
 
     byte toByte() {
