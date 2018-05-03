@@ -51,7 +51,7 @@ public class QRCode {
   public QRCode(int sequenceNumberToAcknowledge) {
     this.type = QRCodeType.ACK;
     this.acknowledgementMessage = AcknowledgementMessage.END;
-    this.messages.add(new Message(String.valueOf(sequenceNumberToAcknowledge), true));
+    this.messages.add(new Message(Base64.getEncoder().encodeToString(ByteBuffer.allocate(4).putInt(sequenceNumberToAcknowledge).array()), true));
   }
 
   public QRCode(QRCodeType type) {
@@ -146,6 +146,8 @@ public class QRCode {
       this.code = (byte) code;
     }
 
+
+
     public static QRCodeType fromByte(byte i) {
       switch(i) {
         case 0:
@@ -163,6 +165,24 @@ public class QRCode {
 
     byte getCode() {
       return code;
+    }
+
+    @Override
+    public String toString() {
+      switch(code) {
+        case 0:
+          return "SYN";
+        case 1:
+          return "ACK";
+        case 2:
+          return "SCK";
+        case 3:
+          return "FIN";
+        case 4:
+          return "MSG";
+        default:
+          return "INVALID";
+      }
     }
   }
 }

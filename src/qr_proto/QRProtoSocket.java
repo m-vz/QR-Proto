@@ -249,7 +249,9 @@ public class QRProtoSocket {
 
             code.setSequenceNumber(currentSequenceNumber);
 
-            System.out.println("Sending priority qr code with sequence number " + code.getSequenceNumber() + " and messages:");
+            System.out.println("Sending priority qr code with type " + code.getType() +
+                ", sequence number " + code.getSequenceNumber() +
+                " and " + (code.getMessages().isEmpty() ? "no message." : "messages:"));
             for(Message message: code.getMessages())
               System.out.println(message.getMessage());
 
@@ -267,8 +269,9 @@ public class QRProtoSocket {
 
               code.setSequenceNumber(currentSequenceNumber);
 
-              System.out.println("Sending qr code with sequence number " + currentSequenceNumber + " and messages:");
-              for(Message message: messages)
+              System.out.println("Sending qr code with sequence number " + currentSequenceNumber +
+                  " and " + (code.getMessages().isEmpty() ? "no message." : "messages:"));
+              for(Message message: code.getMessages())
                 System.out.println(message.getMessage());
 
               sendCode(code);
@@ -370,9 +373,10 @@ public class QRProtoSocket {
 
 
           if(acknowledgementMessage.equals(AcknowledgementMessage.END)) {
-            if(remainingContent.length() == 0 && messages.isEmpty())
+            if(remainingContent.length() == 0 && messages.isEmpty()) {
+              System.out.println("Received code with sequence number " + sequenceNumber + " and type " + type);
               parseMessage(new Message("", true), type, sequenceNumber);
-            else{
+            } else {
               for (Message message : messages)
                 parseMessage(message.unescape(), type, sequenceNumber);
               messages = new Vector<>();
