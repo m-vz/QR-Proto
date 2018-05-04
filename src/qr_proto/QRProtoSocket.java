@@ -124,117 +124,129 @@ public class QRProtoSocket {
       long lastTime = 0;
 
       //noinspection InfiniteLoopStatement
-      do {
-        try {
-          Thread.sleep(SENDER_SLEEP_TIME);
-        } catch (InterruptedException e) {
-          e.printStackTrace();
-        }
-
-        synchronized(this) {
-          if(!messageQueue.isEmpty()) {
-            int length;
-
-            while(!messageQueue.isEmpty() && (length = messageQueue.peek().getMessage().length()) < remainingBufferSize) {
-              messages.add(messageQueue.pop());
-              acknowledgementMessage = AcknowledgementMessage.END;
-              remainingBufferSize -= length;
-            }
-            if(!messageQueue.isEmpty() && remainingBufferSize > 0) {
-              messages.add(new Message(messageQueue.peek().removeSubstring(0, remainingBufferSize), false));
-              acknowledgementMessage = AcknowledgementMessage.CONTINUE;
-              remainingBufferSize = 0;
-            }
-
-            if(lastTime == 0)
-              lastTime = System.currentTimeMillis();
+      try {
+        do {
+          try {
+            Thread.sleep(SENDER_SLEEP_TIME);
+          } catch(InterruptedException e) {
+            e.printStackTrace();
           }
-        }
 
-        synchronized (this) {
-          if(ackToSend != null) {
-            priorityQueue.add(ackToSend);
+          synchronized(this) {
+            if(!messageQueue.isEmpty()) {
+              int length;
 
-            ackToSend = null;
+              while(!messageQueue.isEmpty() && (length = messageQueue.peek().getMessage().length()) < remainingBufferSize) {
+                messages.add(messageQueue.pop());
+                acknowledgementMessage = AcknowledgementMessage.END;
+                remainingBufferSize -= length;
+              }
+              if(!messageQueue.isEmpty() && remainingBufferSize > 0) {
+                messages.add(new Message(messageQueue.peek().removeSubstring(0, remainingBufferSize), false));
+                acknowledgementMessage = AcknowledgementMessage.CONTINUE;
+                remainingBufferSize = 0;
+              }
+
+              if(lastTime == 0)
+                lastTime = System.currentTimeMillis();
+            }
           }
-        }
 
-        if(canSend) {
-          QRCode code = null;
+          synchronized(this) {
+            if(ackToSend != null) {
+              priorityQueue.add(ackToSend);
 
-          if(!priorityQueue.isEmpty()) {
-            code = priorityQueue.pop();
-
-            synchronized(this) {
-              if(code.getType().equals(QRCodeType.SYN) || // SYNs need to wait for SCK
-                  code.getType().equals(QRCodeType.SCK)) // SCKs need to wait for ACK
-                canSend = false;
+              ackToSend = null;
             }
+          }
 
-            incrementSequenceNumber(code);
+          if(canSend) {
+            QRCode code;
 
-            Log.log.outln("Sending priority qr code:");
-            Log.log.outln(code);
+            if(!priorityQueue.isEmpty()) {
+              code = priorityQueue.pop();
 
-            sendCode(code);
-
-          } else if(!errorQueue.isEmpty()) {
-            code = errorQueue.pop();
-
-            synchronized(this) {
-              if(code.getType().equals(QRCodeType.MSG) && code.getAcknowledgementMessage().equals(AcknowledgementMessage.END)) // MSGs need to wait for ACK if END
-                canSend = false;
-            }
-
-            Log.log.outln("Sending error qr code:");
-            Log.log.outln(code);
-
-            sendCode(code);
-
-            synchronized(this) {
-              if(errorQueue.isEmpty())
-                lastErrorSequenceNumber = 0;
-            }
-          } else if(!messages.isEmpty()) {
-            if(remainingBufferSize <= 0 || (System.currentTimeMillis() - lastTime) >= DISPLAY_TIME) {
-              code = new QRCode(messages, acknowledgementMessage);
+              if(code.getType().equals(QRCodeType.MSG))
+                throw new Exception("Priority queue cannot contain codes of type MSG.");
 
               synchronized(this) {
-                if(acknowledgementMessage.equals(AcknowledgementMessage.END))
+                if(code.getType().equals(QRCodeType.SYN) || // SYNs need to wait for SCK
+                    code.getType().equals(QRCodeType.SCK)) // SCKs need to wait for ACK
                   canSend = false;
               }
 
-              incrementSequenceNumber(code);
+              synchronized(this) {
+                switch(code.getType()) {
+                  case SYN:
+                  case SCK:
+                    currentSequenceNumberOffset++;
+                    break;
+                  case ERR:
+                    break;
+                  case ACK:
+                  case FIN:
+                    currentSequenceNumber++;
+                    break;
+                }
+                code.setSequenceNumber(currentSequenceNumber + currentSequenceNumberOffset);
+              }
 
-              Log.log.outln("Sending qr code:");
+              Log.log.outln("Sending priority qr code:");
               Log.log.outln(code);
 
-              messages.clear();
-              remainingBufferSize = MAX_BUFFER_SIZE;
-              lastTime = 0;
+              sendCode(code);
+
+            } else if(!errorQueue.isEmpty()) {
+              code = errorQueue.pop();
+
+              if(!code.getType().equals(QRCodeType.MSG))
+                throw new Exception("Error queue can only contain codes of type MSG, but not " + code.getType() + ".");
+
+              synchronized(this) {
+                if(code.getAcknowledgementMessage().equals(AcknowledgementMessage.END)) // MSGs need to wait for ACK if END
+                  canSend = false;
+                currentSequenceNumberOffset++;
+              }
+
+              Log.log.outln("Sending error qr code:");
+              Log.log.outln(code);
 
               sendCode(code);
+
+              synchronized(this) {
+                if(errorQueue.isEmpty())
+                  lastErrorSequenceNumber = 0;
+              }
+            } else if(!messages.isEmpty()) {
+              if(remainingBufferSize <= 0 || (System.currentTimeMillis() - lastTime) >= DISPLAY_TIME) {
+                code = new QRCode(messages, acknowledgementMessage);
+
+                if(!code.getType().equals(QRCodeType.MSG))
+                  throw new Exception("Message queue can only contain codes of type MSG, but not " + code.getType() + ".");
+
+                synchronized(this) {
+                  if(acknowledgementMessage.equals(AcknowledgementMessage.END))
+                    canSend = false;
+                  currentSequenceNumberOffset++;
+
+                  code.setSequenceNumber(currentSequenceNumber + currentSequenceNumberOffset);
+                }
+
+                Log.log.outln("Sending qr code:");
+                Log.log.outln(code);
+
+                messages.clear();
+                remainingBufferSize = MAX_BUFFER_SIZE;
+                lastTime = 0;
+
+                sendCode(code);
+              }
             }
           }
-        }
-      } while(true);
-    }
-
-    private void incrementSequenceNumber(QRCode code) {
-      synchronized(this) {
-        switch(code.getType()) {
-          case SYN:
-          case SCK:
-          case MSG:
-            currentSequenceNumberOffset++;
-            break;
-          case ERR:
-            break;
-          default:
-            currentSequenceNumber++;
-            break;
-        }
-        code.setSequenceNumber(currentSequenceNumber + currentSequenceNumberOffset);
+        } while(true);
+      } catch(Exception e) {
+        e.printStackTrace();
+        Log.log.errln("Stopping sending thread.");
       }
     }
 
