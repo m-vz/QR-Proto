@@ -20,21 +20,25 @@ import qr_proto.qr.QRCode.QRCodeType;
 /**
  * Created by Aeneas on 18.04.18.
  */
-public class QRProtoSocket {
-  private static final int MAX_BUFFER_SIZE = /*2953*/5; // TODO: find correct max buffer size
-  private static final int SENDER_SLEEP_TIME = 10, RECEIVER_SLEEP_TIME = 10, DISPLAY_TIME = 200;
+class QRProtoSocket {
+  private static final int MAX_BUFFER_SIZE = /*2953*/100; // TODO: find correct max buffer size
+  private static final int SENDER_SLEEP_TIME = 10, RECEIVER_SLEEP_TIME = 10, DISPLAY_TIME = 400;
 
   private volatile boolean connecting = false, connected = false, canSend = true;
   private volatile int currentSequenceNumber = 0, currentSequenceNumberOffset = 0, lastErrorSequenceNumber = 0;
+  private volatile String received = "";
   private LinkedList<Message> messageQueue;
   private LinkedList<QRCode> sentQRCodes, priorityQueue, errorQueue;
   private QRCode ackToSend = null;
   private QRProtoPanel panel;
-  private AbstractAction connectedCallback = null, disconnectedCallback = null;
+  private AbstractAction
+      connectedCallback = null, connectingCallback = null, disconnectedCallback = null,
+      canSendCallback = null, receivedCallback = null, errorCallback = null;
   private Webcam webcam;
-  private Thread senderThread, receiverThread;
+  private QRProtoSocketSender sender;
+  private QRProtoSocketReceiver receiver;
 
-  public QRProtoSocket(int panelSize, Dimension cameraResolution) {
+  QRProtoSocket(int panelSize, Dimension cameraResolution) {
     messageQueue = new LinkedList<>();
     sentQRCodes = new LinkedList<>();
     priorityQueue = new LinkedList<>();
@@ -43,40 +47,47 @@ public class QRProtoSocket {
     panel = new QRProtoPanel(panelSize);
 
     webcam = Webcam.getWebcams().get(0);
+    webcam.setCustomViewSizes(cameraResolution);
     webcam.setViewSize(cameraResolution);
 
-    senderThread = new Thread(new QRProtoSocketSender());
-    senderThread.start();
+    sender = new QRProtoSocketSender();
+    new Thread(sender).start();
 
-    receiverThread = new Thread(new QRProtoSocketReceiver());
-    receiverThread.start();
+    receiver = new QRProtoSocketReceiver();
+    new Thread(receiver).start();
   }
 
-  public void sendMessage(String message) {
+  void sendMessage(String message) {
     messageQueue.add(new Message(message, true));
   }
 
-  public void connect() {
+  void connect() {
     if(connected) {
-      Log.log.errln("Already connected.");
+      Log.errln("Already connected.");
       return;
     }
 
-    Log.log.outln("Connecting...");
+    Log.outln("Connecting...");
 
     this.connecting = true;
 
     priorityQueue.add(new QRCode(QRCode.QRCodeType.SYN));
   }
 
-  public void disconnect() {
+  void disconnect() {
     if(!connected) {
-      Log.log.errln("Not connected.");
+      Log.errln("Not connected.");
       return;
     }
 
     disconnected();
     priorityQueue.add(new QRCode(QRCodeType.FIN)); // FIXME: canSend will never be true again after FIN was sent.
+  }
+
+  void end() {
+    sender.shouldEnd = true;
+    receiver.shouldEnd = true;
+    webcam.close();
   }
 
   private void disconnected() {
@@ -94,28 +105,46 @@ public class QRProtoSocket {
     ackToSend = null;
 
     if(disconnectedCallback != null)
-      disconnectedCallback.actionPerformed(new ActionEvent(this, 0, "disconnected")); // TODO: can the action event be composed of more useful information?
+      disconnectedCallback.actionPerformed(new ActionEvent(this, 0, "disconnected"));
 
-    Log.log.outln("Disconnected.");
+    Log.outln("Disconnected.");
   }
 
-  public void setConnectedCallback(AbstractAction connectedCallback) {
+  void setConnectedCallback(AbstractAction connectedCallback) {
     this.connectedCallback = connectedCallback;
   }
 
-  public void setDisconnectedCallback(AbstractAction disconnectedCallback) {
+  void setConnectingCallback(AbstractAction connectingCallback) {
+    this.connectingCallback = connectingCallback;
+  }
+
+  void setDisconnectedCallback(AbstractAction disconnectedCallback) {
     this.disconnectedCallback = disconnectedCallback;
+  }
+
+  void setCanSendCallback(AbstractAction canSendCallback) {
+    this.canSendCallback = canSendCallback;
+  }
+
+  void setReceivedCallback(AbstractAction receivedCallback) {
+    this.receivedCallback = receivedCallback;
+  }
+
+  void setErrorCallback(AbstractAction errorCallback) {
+    this.errorCallback = errorCallback;
+  }
+
+  String getReceived() {
+    return received;
   }
 
   QRProtoPanel getPanel() {
     return panel;
   }
 
-  boolean isConnected() {
-    return connected;
-  }
-
   private class QRProtoSocketSender implements Runnable {
+    boolean shouldEnd = false;
+
     @Override
     public void run() {
       ArrayList<Message> messages = new ArrayList<>();
@@ -136,7 +165,7 @@ public class QRProtoSocket {
             if(!messageQueue.isEmpty()) {
               int length;
 
-              while(!messageQueue.isEmpty() && (length = messageQueue.peek().getMessage().length()) < remainingBufferSize) {
+              while(!messageQueue.isEmpty() && (length = Objects.requireNonNull(messageQueue.peek()).getMessage().length()) < remainingBufferSize) {
                 messages.add(messageQueue.pop());
                 acknowledgementMessage = AcknowledgementMessage.END;
                 remainingBufferSize -= length;
@@ -191,8 +220,8 @@ public class QRProtoSocket {
                 code.setSequenceNumber(currentSequenceNumber + currentSequenceNumberOffset);
               }
 
-              Log.log.outln("Sending priority qr code:");
-              Log.log.outln(code);
+              Log.outln("Sending priority qr code:");
+              Log.outln(code);
 
               sendCode(code);
 
@@ -208,8 +237,8 @@ public class QRProtoSocket {
                 currentSequenceNumberOffset++;
               }
 
-              Log.log.outln("Sending error qr code:");
-              Log.log.outln(code);
+              Log.outln("Sending error qr code:");
+              Log.outln(code);
 
               sendCode(code);
 
@@ -232,8 +261,8 @@ public class QRProtoSocket {
                   code.setSequenceNumber(currentSequenceNumber + currentSequenceNumberOffset);
                 }
 
-                Log.log.outln("Sending qr code:");
-                Log.log.outln(code);
+                Log.outln("Sending qr code:");
+                Log.outln(code);
 
                 messages.clear();
                 remainingBufferSize = MAX_BUFFER_SIZE;
@@ -243,10 +272,12 @@ public class QRProtoSocket {
               }
             }
           }
-        } while(true);
+        } while(!shouldEnd);
+
+        Log.outln("Sending thread stopped.");
       } catch(Exception e) {
         e.printStackTrace();
-        Log.log.errln("Stopping sending thread.");
+        Log.errln("Stopping sending thread.");
       }
     }
 
@@ -269,6 +300,7 @@ public class QRProtoSocket {
     private static final int HEADER_SIZE = 8, CHECKSUM_SIZE = 4;
     private Vector<Message> messages = new Vector<>();
     private String remainingContent = "";
+    boolean shouldEnd = false;
 
     @Override
     public void run() {
@@ -307,7 +339,7 @@ public class QRProtoSocket {
           byte checksum = Base64.getDecoder().decode(rawContent.substring(rawContentLength - CHECKSUM_SIZE))[0];
 
           if(checksum != QRCode.checksum(rawContent.substring(0, rawContentLength - CHECKSUM_SIZE))) {
-            Log.log.errln("Error: Checksum not identical!");
+            Log.errln("Error: Checksum not identical!");
             continue; // not necessary to handle since wrong checksum are never acknowledged
           }
 
@@ -316,14 +348,16 @@ public class QRProtoSocket {
               continue; // ignore all ERR messages that have been read before
           } else {
             if(sequenceNumber <= currentSequenceNumber + currentSequenceNumberOffset) { // a message has been read twice
-              Log.log.errln("Received code with incorrect sequence number " + sequenceNumber + ".");
               continue; // ignore all messages that have been read before
             } else if(sequenceNumber > currentSequenceNumber + currentSequenceNumberOffset + 1) { // a message has been lost
-              Log.log.errln("Received code with incorrect sequence number " + sequenceNumber + ".");
+              Log.errln("Received code with incorrect sequence number " + sequenceNumber + ".");
               if(type.equals(QRCodeType.MSG)) {
-                Log.log.errln("Sending ERR for sequence number " + currentSequenceNumber + " (current offset is " + currentSequenceNumberOffset + ").");
+                Log.errln("Sending ERR for sequence number " + currentSequenceNumber + " (current offset is " + currentSequenceNumberOffset + ").");
                 synchronized(this) {
                   ackToSend = new QRCode(currentSequenceNumber, true);
+
+                  if(errorCallback != null)
+                    errorCallback.actionPerformed(new ActionEvent(this, 0, "error"));
                 }
               }
               continue;
@@ -344,11 +378,11 @@ public class QRProtoSocket {
           }
 
           remainingContent = content.substring(current); // this is the remaining content that is not a complete message
-          Log.log.outln("Received code with type " + type + ", sequence number " + sequenceNumber + (content.length() > 0 ? " and content: " + content : " without any content."));
+          Log.outln("Received code with type " + type + ", sequence number " + sequenceNumber + (content.length() > 0 ? " and content: " + content : " without any content."));
 
           if(acknowledgementMessage.equals(AcknowledgementMessage.END)) {
             if(remainingContent.length() == 0 && messages.isEmpty()) {
-              Log.log.outln("Received code with type " + type + " and sequence number " + sequenceNumber);
+              Log.outln("Received code with type " + type + " and sequence number " + sequenceNumber);
               parseMessage(new Message("", true), type, sequenceNumber);
             } else {
               for (Message message : messages)
@@ -361,7 +395,9 @@ public class QRProtoSocket {
             }
           }
         }
-      } while(true);
+      } while(!shouldEnd);
+
+      Log.outln("Receiving thread stopped.");
     }
 
     private void parseMessage(Message message, QRCodeType type, int sequenceNumber) {
@@ -376,11 +412,15 @@ public class QRProtoSocket {
               ackToSend = new QRCode(currentSequenceNumber, false);
             }
 
-            Log.log.outln("Received content message:\n" + content);
+            Log.outln("Received content message:\n" + content);
+            received = content;
+
+            if(receivedCallback != null)
+              receivedCallback.actionPerformed(new ActionEvent(this, 0, "received"));
             break;
           case ACK:
             if(contentLength != 8) {
-              Log.log.errln("Received invalid ACK, ignoring.");
+              Log.errln("Received invalid ACK, ignoring.");
               break;
             }
 
@@ -392,6 +432,9 @@ public class QRProtoSocket {
             }
 
             sentQRCodes.clear();
+
+            if(canSendCallback != null)
+              canSendCallback.actionPerformed(new ActionEvent(this, 0, "can send"));
             break;
           case ERR:
             Integer acknowledgedSequenceNumber = ByteBuffer.wrap(Base64.getDecoder().decode(content.substring(0, 8))).getInt();
@@ -399,17 +442,21 @@ public class QRProtoSocket {
             synchronized(this) {
               lastErrorSequenceNumber = sequenceNumber;
               currentSequenceNumber = acknowledgedSequenceNumber;
+              currentSequenceNumberOffset = 0;
               canSend = true;
 
               sentQRCodes.removeIf(o -> o.getSequenceNumber() <= acknowledgedSequenceNumber);
             }
 
-            Log.log.errln("Messages have been resent from sequence number " + (acknowledgedSequenceNumber + 1) + " (a total of " + sentQRCodes.size() + " codes).");
+            Log.errln("Messages have been resent from sequence number " + (acknowledgedSequenceNumber + 1) + " (a total of " + sentQRCodes.size() + " codes).");
 
             synchronized(this) {
               errorQueue.addAll(sentQRCodes);
               sentQRCodes.clear();
             }
+
+            if(errorCallback != null)
+              errorCallback.actionPerformed(new ActionEvent(this, 0, "error"));
             break;
           case FIN:
             disconnected();
@@ -426,16 +473,18 @@ public class QRProtoSocket {
 
               priorityQueue.add(new QRCode(QRCodeType.ACK));
 
-              if(connectedCallback != null)
-                connectedCallback.actionPerformed(new ActionEvent(this, 0, "connected")); // TODO: can the action event be composed of more useful information?
-
               connecting = false;
               connected = true;
               synchronized(this) {
                 canSend = true;
               }
 
-              Log.log.outln("Connected.");
+              Log.outln("Connected.");
+
+              if(connectedCallback != null)
+                connectedCallback.actionPerformed(new ActionEvent(this, 0, "connected"));
+              if(canSendCallback != null)
+                canSendCallback.actionPerformed(new ActionEvent(this, 0, "can send"));
               break;
             case ACK: // connection has been established
               synchronized(this) {
@@ -449,7 +498,12 @@ public class QRProtoSocket {
                 canSend = true;
               }
 
-              Log.log.outln("Connected.");
+              Log.outln("Connected.");
+
+              if(connectedCallback != null)
+                connectedCallback.actionPerformed(new ActionEvent(this, 0, "connected"));
+              if(canSendCallback != null)
+                canSendCallback.actionPerformed(new ActionEvent(this, 0, "can send"));
               break;
           }
         } else {
@@ -459,6 +513,9 @@ public class QRProtoSocket {
             }
 
             priorityQueue.add(new QRCode(QRCodeType.SCK));
+
+            if(connectingCallback != null)
+              connectingCallback.actionPerformed(new ActionEvent(this, 0, "connecting"));
 
             connecting = true;
             synchronized(this) {

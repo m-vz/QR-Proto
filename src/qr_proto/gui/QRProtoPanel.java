@@ -20,7 +20,6 @@ public class QRProtoPanel extends JPanel {
     this.qrCodeGraphics = (Graphics2D) qrCodeImage.getGraphics();
     this.qrCodeDisplaySize = qrCodeDisplaySize;
 
-    setPreferredSize(new Dimension(qrCodeDisplaySize, qrCodeDisplaySize));
     displayNothing();
   }
 
@@ -57,5 +56,15 @@ public class QRProtoPanel extends JPanel {
 
     if(qrCodeImage != null)
       g.drawImage(qrCodeImage, 0, 0, this);
+  }
+
+  @Override
+  public Dimension getPreferredSize() {
+    return new Dimension(qrCodeDisplaySize, qrCodeDisplaySize);
+  }
+
+  @Override
+  public Dimension getMinimumSize() {
+    return new Dimension(qrCodeDisplaySize, qrCodeDisplaySize);
   }
 }

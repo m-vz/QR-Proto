@@ -28,11 +28,35 @@ public class QRProto {
     socket.disconnect();
   }
 
+  public void end() {
+    socket.end();
+  }
+
+  public String getReceivedMessage() {
+    return socket.getReceived();
+  }
+
   public void setConnectedCallback(AbstractAction connectedCallback) {
     socket.setConnectedCallback(connectedCallback);
   }
 
+  public void setConnectingCallback(AbstractAction connectingCallback) {
+    socket.setConnectingCallback(connectingCallback);
+  }
+
   public void setDisconnectedCallback(AbstractAction disconnectedCallback) {
     socket.setDisconnectedCallback(disconnectedCallback);
+  }
+
+  public void setCanSendCallback(AbstractAction canSendCallback) {
+    socket.setCanSendCallback(canSendCallback);
+  }
+
+  public void setReceivedCallback(AbstractAction receivedCallback) {
+    socket.setReceivedCallback(receivedCallback);
+  }
+
+  public void setErrorCallback(AbstractAction errorCallback) {
+    socket.setErrorCallback(errorCallback);
   }
 }

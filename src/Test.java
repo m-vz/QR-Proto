@@ -7,7 +7,7 @@ public class Test {
     private TestWindow window;
 
     private void startTest() {
-      qrProto = new QRProto(750, WebcamResolution.QVGA.getSize());
+      qrProto = new QRProto(750, WebcamResolution.FHD.getSize());
       window = new TestWindow(qrProto);
     }
 

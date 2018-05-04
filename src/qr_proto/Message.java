@@ -47,10 +47,6 @@ public class Message {
     return message;
   }
 
-  boolean isEscaped() {
-    return escaped;
-  }
-
   @Override
   public String toString() {
     return getMessage();
