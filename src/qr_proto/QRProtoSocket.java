@@ -176,6 +176,8 @@ public class QRProtoSocket {
             Log.log.outln("Sending priority qr code:");
             Log.log.outln(code);
 
+            sendCode(code);
+
           } else if(!errorQueue.isEmpty()) {
             code = errorQueue.pop();
 
@@ -184,10 +186,10 @@ public class QRProtoSocket {
                 canSend = false;
             }
 
-            incrementSequenceNumber(code);
-
             Log.log.outln("Sending error qr code:");
             Log.log.outln(code);
+
+            sendCode(code);
 
             synchronized(this) {
               if(errorQueue.isEmpty())
@@ -210,11 +212,10 @@ public class QRProtoSocket {
               messages.clear();
               remainingBufferSize = MAX_BUFFER_SIZE;
               lastTime = 0;
+
+              sendCode(code);
             }
           }
-
-          if(code != null)
-            sendCode(code);
         }
       } while(true);
     }
@@ -303,6 +304,7 @@ public class QRProtoSocket {
               continue; // ignore all ERR messages that have been read before
           } else {
             if(sequenceNumber <= currentSequenceNumber + currentSequenceNumberOffset) { // a message has been read twice
+              Log.log.errln("Received code with incorrect sequence number " + sequenceNumber + ".");
               continue; // ignore all messages that have been read before
             } else if(sequenceNumber > currentSequenceNumber + currentSequenceNumberOffset + 1) { // a message has been lost
               Log.log.errln("Received code with incorrect sequence number " + sequenceNumber + ".");
@@ -385,7 +387,6 @@ public class QRProtoSocket {
             synchronized(this) {
               lastErrorSequenceNumber = sequenceNumber;
               currentSequenceNumber = acknowledgedSequenceNumber;
-              currentSequenceNumberOffset = 0;
               canSend = true;
 
               sentQRCodes.removeIf(o -> o.getSequenceNumber() <= acknowledgedSequenceNumber);
@@ -394,8 +395,7 @@ public class QRProtoSocket {
             Log.log.errln("Messages have been resent from sequence number " + (acknowledgedSequenceNumber + 1) + " (a total of " + sentQRCodes.size() + " codes).");
 
             synchronized(this) {
-              for(int i = sentQRCodes.size() - 1; i >= 0; i--)
-                errorQueue.addFirst(sentQRCodes.get(i));
+              errorQueue.addAll(sentQRCodes);
               sentQRCodes.clear();
             }
             break;
