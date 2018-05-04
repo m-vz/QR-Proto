@@ -153,7 +153,6 @@ public class QRProtoSocket {
 
         synchronized (this) {
           if(ackToSend != null) {
-            Log.log.outln("Adding ACK with number-to-verify " + ByteBuffer.wrap(Base64.getDecoder().decode(ackToSend.getMessages().get(0).getMessage().substring(0, 8))).getInt() + " to priority queue.");
             priorityQueue.add(ackToSend);
 
             ackToSend = null;
@@ -308,7 +307,7 @@ public class QRProtoSocket {
             } else if(sequenceNumber > currentSequenceNumber + currentSequenceNumberOffset + 1) { // a message has been lost
               Log.log.errln("Received code with incorrect sequence number " + sequenceNumber + ".");
               if(type.equals(QRCodeType.MSG)) {
-                Log.log.errln("Sending ACK for sequence number " + currentSequenceNumber + " (current offset is " + currentSequenceNumberOffset + ").");
+                Log.log.errln("Sending ERR for sequence number " + currentSequenceNumber + " (current offset is " + currentSequenceNumberOffset + ").");
                 synchronized(this) {
                   ackToSend = new QRCode(currentSequenceNumber, true);
                 }
