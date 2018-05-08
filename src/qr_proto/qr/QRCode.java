@@ -14,6 +14,7 @@ import java.util.EnumMap;
 import java.util.Map;
 import qr_proto.Message;
 
+
 public class QRCode {
   private static QRCodeWriter qrCodeWriter = new QRCodeWriter();
   private static Map<EncodeHintType, Object> hintMap = new EnumMap<>(EncodeHintType.class);
