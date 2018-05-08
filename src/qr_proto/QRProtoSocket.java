@@ -24,37 +24,63 @@ class QRProtoSocket {
   private static final int MAX_BUFFER_SIZE = /*2953*/100; // TODO: find correct max buffer size
   private static final int SENDER_SLEEP_TIME = 10, RECEIVER_SLEEP_TIME = 10, DISPLAY_TIME = 400;
 
-  private volatile boolean connecting = false, connected = false, canSend = true;
-  private volatile int currentSequenceNumber = 0, currentSequenceNumberOffset = 0, lastErrorSequenceNumber = 0;
-  private volatile String received = "";
+  private volatile boolean connecting, connected, canSend;
+  private volatile int currentSequenceNumber, currentSequenceNumberOffset, lastErrorSequenceNumber;
+  private volatile String received;
   private LinkedList<Message> messageQueue;
   private LinkedList<QRCode> sentQRCodes, priorityQueue, errorQueue;
-  private QRCode ackToSend = null;
+  private QRCode ackToSend;
   private QRProtoPanel panel;
-  private AbstractAction
-      connectedCallback = null, connectingCallback = null, disconnectedCallback = null,
-      canSendCallback = null, receivedCallback = null, errorCallback = null;
+  private AbstractAction connectedCallback, connectingCallback, disconnectedCallback, canSendCallback, receivedCallback, errorCallback;
   private Webcam webcam;
+  private Dimension webcamResolution;
   private QRProtoSocketSender sender;
   private QRProtoSocketReceiver receiver;
 
   QRProtoSocket(int panelSize, Dimension cameraResolution) {
+    panel = new QRProtoPanel(panelSize);
+
+    webcamResolution = cameraResolution;
+    webcam = Webcam.getWebcams().get(0);
+    webcam.setCustomViewSizes(cameraResolution);
+    webcam.setViewSize(cameraResolution);
+    if(!webcam.isOpen())
+      webcam.open();
+
+    init();
+  }
+
+  void init() {
+    connecting = false;
+    connected = false;
+    canSend = true;
+    currentSequenceNumber = 0;
+    currentSequenceNumberOffset = 0;
+    lastErrorSequenceNumber = 0;
+    received = "";
+    ackToSend = null;
+    connectedCallback = null;
+    connectingCallback = null;
+    disconnectedCallback = null;
+    canSendCallback = null;
+    receivedCallback = null;
+    errorCallback = null;
     messageQueue = new LinkedList<>();
     sentQRCodes = new LinkedList<>();
     priorityQueue = new LinkedList<>();
     errorQueue = new LinkedList<>();
 
-    panel = new QRProtoPanel(panelSize);
-
-    webcam = Webcam.getWebcams().get(0);
-    webcam.setCustomViewSizes(cameraResolution);
-    webcam.setViewSize(cameraResolution);
-
+    if(sender != null)
+      sender.shouldEnd = true;
     sender = new QRProtoSocketSender();
     new Thread(sender).start();
 
+    if(receiver != null)
+      receiver.shouldEnd = true;
     receiver = new QRProtoSocketReceiver();
     new Thread(receiver).start();
+
+    panel.displayNothing();
   }
 
   void sendMessage(String message) {
@@ -91,18 +117,7 @@ class QRProtoSocket {
   }
 
   private void disconnected() {
-    connected = false;
-    connecting = false;
-    synchronized(this) {
-      currentSequenceNumber = 0;
-      currentSequenceNumberOffset = 0;
-      canSend = true;
-    }
-    messageQueue = new LinkedList<>();
-    sentQRCodes = new LinkedList<>();
-    priorityQueue = new LinkedList<>();
-    errorQueue = new LinkedList<>();
-    ackToSend = null;
+    init();
 
     if(disconnectedCallback != null)
       disconnectedCallback.actionPerformed(new ActionEvent(this, 0, "disconnected"));
@@ -140,6 +155,10 @@ class QRProtoSocket {
 
   QRProtoPanel getPanel() {
     return panel;
+  }
+
+  Dimension getWebcamResolution() {
+    return webcamResolution;
   }
 
   private class QRProtoSocketSender implements Runnable {

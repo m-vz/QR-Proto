@@ -1,5 +1,6 @@
 package gui;
 
+import audio.QRPhone;
 import com.github.sarxos.webcam.Webcam;
 import com.github.sarxos.webcam.WebcamPanel;
 import com.github.sarxos.webcam.WebcamResolution;
@@ -20,11 +21,13 @@ public class TestWindow extends JFrame {
   private TestPanel testPanel;
   private QRProtoPanel qrProtoPanel;
   private QRProto qrProto;
+  private QRPhone qrPhone;
 
   public TestWindow(QRProto qrProto) throws HeadlessException {
     super();
 
     this.qrProto = qrProto;
+    this.qrPhone = new QRPhone();
 
     setLayout(new GridBagLayout());
     GridBagConstraints c;
@@ -107,7 +110,7 @@ public class TestWindow extends JFrame {
     qrProto.setReceivedCallback(new AbstractAction() {
       @Override
       public void actionPerformed(ActionEvent e) {
-
+        qrPhone.playAudio(qrPhone.convertStringToByteArrayOutputStream(qrProto.getReceivedMessage()));
       }
     });
     qrProto.setErrorCallback(new AbstractAction() {
@@ -146,7 +149,7 @@ public class TestWindow extends JFrame {
   }
 
   class TestPanel extends JPanel {
-    JButton connectButton, disconnectButton, testButton;
+    JButton connectButton, disconnectButton, testButton, resetButton, clearButton;
 
     TestPanel() {
       super();
@@ -171,16 +174,35 @@ public class TestWindow extends JFrame {
       testButton = new JButton(new AbstractAction("test") {
         @Override
         public void actionPerformed(ActionEvent e) {
-          qrProto.sendMessage("000001111122222333334444455555666667777788888999");
+          qrProto.sendMessage(qrPhone.convertAudioToString(qrPhone.recordAudio(3000)));
         }
       });
       testButton.setEnabled(false);
+      resetButton = new JButton(new AbstractAction("reset") { // TODO: atm, the webcam panel breaks after reset.
+        @Override
+        public void actionPerformed(ActionEvent e) {
+          resetButton.setEnabled(false);
+          qrProto.reset();
+          connectButton.setEnabled(true);
+          disconnectButton.setEnabled(false);
+          testButton.setEnabled(false);
+          resetButton.setEnabled(true);
+        }
+      });
+      clearButton = new JButton(new AbstractAction("clear") {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+          qrProto.clear();
+        }
+      });
 
       setBackground(background);
 
       add(connectButton);
       add(disconnectButton);
       add(testButton);
+      add(resetButton);
+      add(clearButton);
     }
   }
 

@@ -1,12 +1,9 @@
 package audio;
 
-import com.sun.xml.internal.ws.policy.privateutil.PolicyUtils.IO;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.UnsupportedEncodingException;
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
@@ -62,7 +59,7 @@ public class QRPhone {
     return out;
   }
 
-  void playAudio (ByteArrayOutputStream out){
+  public void playAudio (ByteArrayOutputStream out){
     try{
       byte audio[] = out.toByteArray();
       InputStream input = new ByteArrayInputStream(audio);
@@ -87,12 +84,12 @@ public class QRPhone {
     }
   }
 
-  String convertAudioToString(ByteArrayOutputStream stream) {
+  public String convertAudioToString(ByteArrayOutputStream stream) {
     byte[] bytes = stream.toByteArray();
     return new String(toCharArray(bytes));
   }
 
-  ByteArrayOutputStream convertStringToByteArrayOutputStream(String input){
+  public ByteArrayOutputStream convertStringToByteArrayOutputStream(String input){
     byte[] output = toByteArray(input.toCharArray());
     ByteArrayOutputStream outputStream = new ByteArrayOutputStream(output.length);
     outputStream.write(output,0,output.length);

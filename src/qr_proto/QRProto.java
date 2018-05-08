@@ -32,6 +32,15 @@ public class QRProto {
     socket.end();
   }
 
+  public void reset() {
+    end();
+    socket.init();
+  }
+
+  public void clear() {
+    socket.getPanel().displayNothing();
+  }
+
   public String getReceivedMessage() {
     return socket.getReceived();
   }
