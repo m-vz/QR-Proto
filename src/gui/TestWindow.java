@@ -27,7 +27,6 @@ public class TestWindow extends JFrame {
     super();
 
     this.qrProto = qrProto;
-    this.qrPhone = new QRPhone();
 
     setLayout(new GridBagLayout());
     GridBagConstraints c;
@@ -129,7 +128,7 @@ public class TestWindow extends JFrame {
     c.fill = GridBagConstraints.BOTH;
     c.gridx = 1;
     c.gridy = 0;
-    c.gridheight = 2;
+    c.gridheight = 3;
     add(qrProtoPanel, c);
 
     setBackground(background);
@@ -172,7 +171,9 @@ public class TestWindow extends JFrame {
       testButton = new JButton(new AbstractAction("test") {
         @Override
         public void actionPerformed(ActionEvent e) {
-          qrProto.sendMessage(qrPhone.convertAudioToString(qrPhone.recordAudio(3000)));
+          qrPhone = new QRPhone(qrProto);
+          qrPhone.startSending();
+          //qrPhone.startReceiving();
         }
       });
       resetButton = new JButton(new AbstractAction("reset") { // TODO: atm, the webcam panel breaks after reset.
