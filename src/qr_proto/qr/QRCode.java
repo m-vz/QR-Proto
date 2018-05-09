@@ -21,7 +21,7 @@ public class QRCode {
   private static QRCodeWriter qrCodeWriter = new QRCodeWriter();
   private static Map<EncodeHintType, Object> hintMap = new EnumMap<>(EncodeHintType.class);
   static {
-    hintMap.put(EncodeHintType.CHARACTER_SET, "UTF-32");
+    hintMap.put(EncodeHintType.CHARACTER_SET, "UTF-8");
     hintMap.put(EncodeHintType.MARGIN, 2); // defaults to 4
     hintMap.put(EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.L);
   }
