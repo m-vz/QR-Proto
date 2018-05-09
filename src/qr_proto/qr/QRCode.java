@@ -16,11 +16,13 @@ import qr_proto.Message;
 
 
 public class QRCode {
+  public static final int METADATA_LENGTH = 8 + 4; // header length + checksum length
+
   private static QRCodeWriter qrCodeWriter = new QRCodeWriter();
   private static Map<EncodeHintType, Object> hintMap = new EnumMap<>(EncodeHintType.class);
   static {
-    hintMap.put(EncodeHintType.CHARACTER_SET, "UTF-8");
-    hintMap.put(EncodeHintType.MARGIN, 0); // defaults to 4
+    hintMap.put(EncodeHintType.CHARACTER_SET, "UTF-32");
+    hintMap.put(EncodeHintType.MARGIN, 2); // defaults to 4
     hintMap.put(EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.L);
   }
 
@@ -78,7 +80,7 @@ public class QRCode {
 
     qrMessage.append(Base64.getEncoder().encodeToString(header.array())); // adds 8 characters
     for(Message message: messages)
-      qrMessage.append(message.escape());
+      qrMessage.append(message);
     qrMessage.append(Base64.getEncoder().encodeToString(new byte[]{checksum(qrMessage.toString())})); // adds 4 characters
 
     try {

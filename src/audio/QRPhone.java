@@ -21,7 +21,7 @@ public class QRPhone {
   private byte buffer[];
 
   public QRPhone () {
-    this(8000 /*4000 minimum*/,8,1,true,true);
+    this(4000 /*4000 minimum*/,8,1,true,true);
   }
   public QRPhone (float sampleRate, int sampleSizeInBits, int channels, boolean signed, boolean bigEndian) {
     format =  new AudioFormat(sampleRate,

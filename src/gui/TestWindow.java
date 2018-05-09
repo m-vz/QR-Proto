@@ -86,7 +86,6 @@ public class TestWindow extends JFrame {
       @Override
       public void actionPerformed(ActionEvent e) {
         testPanel.disconnectButton.setEnabled(true);
-        testPanel.testButton.setEnabled(true);
       }
     });
     qrProto.setConnectingCallback(new AbstractAction() {
@@ -166,7 +165,6 @@ public class TestWindow extends JFrame {
         public void actionPerformed(ActionEvent e) {
           qrProto.disconnect();
           disconnectButton.setEnabled(false);
-          testButton.setEnabled(false);
           connectButton.setEnabled(true);
         }
       });
@@ -177,7 +175,6 @@ public class TestWindow extends JFrame {
           qrProto.sendMessage(qrPhone.convertAudioToString(qrPhone.recordAudio(3000)));
         }
       });
-      testButton.setEnabled(false);
       resetButton = new JButton(new AbstractAction("reset") { // TODO: atm, the webcam panel breaks after reset.
         @Override
         public void actionPerformed(ActionEvent e) {
@@ -185,7 +182,6 @@ public class TestWindow extends JFrame {
           qrProto.reset();
           connectButton.setEnabled(true);
           disconnectButton.setEnabled(false);
-          testButton.setEnabled(false);
           resetButton.setEnabled(true);
         }
       });

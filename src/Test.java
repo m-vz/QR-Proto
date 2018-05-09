@@ -1,4 +1,3 @@
-import audio.QRPhone;
 import com.github.sarxos.webcam.WebcamResolution;
 import gui.TestWindow;
 import qr_proto.QRProto;

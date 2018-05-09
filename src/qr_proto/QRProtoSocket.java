@@ -21,7 +21,7 @@ import qr_proto.qr.QRCode.QRCodeType;
  * Created by Aeneas on 18.04.18.
  */
 class QRProtoSocket {
-  private static final int MAX_BUFFER_SIZE = /*2953*/100; // TODO: find correct max buffer size
+  private static final int MAX_BUFFER_SIZE = (2953 - QRCode.METADATA_LENGTH - 1)/8; // divide by 8 because utf-32
   private static final int SENDER_SLEEP_TIME = 10, RECEIVER_SLEEP_TIME = 10, DISPLAY_TIME = 400;
 
   private volatile boolean connecting, connected, canSend;
@@ -84,7 +84,7 @@ class QRProtoSocket {
   }
 
   void sendMessage(String message) {
-    messageQueue.add(new Message(message, true));
+    messageQueue.add(new Message(message, true).escape());
   }
 
   void connect() {
@@ -107,7 +107,7 @@ class QRProtoSocket {
     }
 
     disconnected();
-    priorityQueue.add(new QRCode(QRCodeType.FIN)); // FIXME: canSend will never be true again after FIN was sent.
+    priorityQueue.add(new QRCode(QRCodeType.FIN));
   }
 
   void end() {
@@ -367,6 +367,7 @@ class QRProtoSocket {
               continue; // ignore all ERR messages that have been read before
           } else {
             if(sequenceNumber <= currentSequenceNumber + currentSequenceNumberOffset) { // a message has been read twice
+              Log.outln("twice");
               continue; // ignore all messages that have been read before
             } else if(sequenceNumber > currentSequenceNumber + currentSequenceNumberOffset + 1) { // a message has been lost
               Log.errln("Received code with incorrect sequence number " + sequenceNumber + ".");
