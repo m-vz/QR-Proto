@@ -367,7 +367,6 @@ class QRProtoSocket {
               continue; // ignore all ERR messages that have been read before
           } else {
             if(sequenceNumber <= currentSequenceNumber + currentSequenceNumberOffset) { // a message has been read twice
-              Log.outln("twice");
               continue; // ignore all messages that have been read before
             } else if(sequenceNumber > currentSequenceNumber + currentSequenceNumberOffset + 1) { // a message has been lost
               Log.errln("Received code with incorrect sequence number " + sequenceNumber + ".");
