@@ -242,6 +242,8 @@ class QRProtoSocket {
               Log.outln("Sending priority qr code:");
               Log.outln(code);
 
+              for(Message message: code.getMessages())
+                message.escape();
               sendCode(code);
 
             } else if(!errorQueue.isEmpty()) {
@@ -259,6 +261,8 @@ class QRProtoSocket {
               Log.outln("Sending error qr code:");
               Log.outln(code);
 
+              for(Message message: code.getMessages())
+                message.escape();
               sendCode(code);
 
               synchronized(this) {
