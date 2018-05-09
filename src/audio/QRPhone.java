@@ -49,10 +49,7 @@ public class QRPhone {
 
     this.qrProto = qrProto;
     this.recordedMessages = new LinkedList<>();
-
-    RecordMessages recordMessages = new RecordMessages();
-    new Thread(recordMessages).start();
-  }
+    }
 
   public ByteArrayOutputStream recordAudio(long recordingTime) {
     long startTime = System.currentTimeMillis();
@@ -137,12 +134,6 @@ public class QRPhone {
 
   class RecordMessages implements Runnable {
 
-    LinkedList<String> recordedMessages;
-
-    public RecordMessages() {
-      recordedMessages = QRPhone.this.recordedMessages;
-    }
-
     @Override
     public void run() {
       Log.outln("Thread started");
@@ -161,6 +152,7 @@ public class QRPhone {
       }
     };
     qrProto.setCanSendCallback(a);
+    new Thread(new RecordMessages()).start();
   }
 
   public void startReceiving() {
