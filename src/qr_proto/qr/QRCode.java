@@ -57,7 +57,7 @@ public class QRCode {
     else
       this.type = QRCodeType.ACK;
     this.acknowledgementMessage = AcknowledgementMessage.END;
-    this.messages.add(new Message(Base64.getEncoder().encodeToString(ByteBuffer.allocate(4).putInt(sequenceNumberToAcknowledge).array()), true));
+    this.messages.add(new Message(Base64.getEncoder().encodeToString(ByteBuffer.allocate(4).putInt(sequenceNumberToAcknowledge).array()), true, false));
   }
 
   public QRCode(QRCodeType type) {

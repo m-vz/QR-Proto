@@ -12,10 +12,6 @@ public class Message {
     this.escaped = escaped;
   }
 
-  public Message(String message, boolean complete) {
-    this(message, complete, false);
-  }
-
   public String removeSubstring(int beginIndex, int endIndex) {
     String start = message.substring(beginIndex, endIndex);
     message = message.substring(endIndex);
@@ -33,14 +29,21 @@ public class Message {
   }
 
   public Message unescape () {
+    if(message.contains("\\b")) {
+      int a = 5;
+    }
     if(escaped) {
-      int length = message.length();
+      int length = getMessageLength();
       if(complete)
         length -= MESSAGE_END.length();
       message = message.substring(0, length).replace("\\b", "\\");
       escaped = false;
     }
     return this;
+  }
+
+  public int getMessageLength() {
+    return message.length();
   }
 
   public String getMessage() {

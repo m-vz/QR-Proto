@@ -83,7 +83,7 @@ class QRProtoSocket {
   }
 
   void sendMessage(String message) {
-    messageQueue.add(new Message(message, true).escape());
+    messageQueue.add(new Message(message, true, false).escape());
   }
 
   void connect() {
@@ -183,13 +183,13 @@ class QRProtoSocket {
             if(!messageQueue.isEmpty()) {
               int length;
 
-              while(!messageQueue.isEmpty() && (length = Objects.requireNonNull(messageQueue.peek()).getMessage().length()) < remainingBufferSize) {
+              while(!messageQueue.isEmpty() && (length = Objects.requireNonNull(messageQueue.peek()).getMessageLength()) < remainingBufferSize) {
                 messages.add(messageQueue.pop());
                 acknowledgementMessage = AcknowledgementMessage.END;
                 remainingBufferSize -= length;
               }
               if(!messageQueue.isEmpty() && remainingBufferSize > 0) {
-                messages.add(new Message(messageQueue.peek().removeSubstring(0, remainingBufferSize), false));
+                messages.add(new Message(messageQueue.peek().removeSubstring(0, remainingBufferSize), false, true));
                 acknowledgementMessage = AcknowledgementMessage.CONTINUE;
                 remainingBufferSize = 0;
               }
@@ -393,7 +393,7 @@ class QRProtoSocket {
           if(acknowledgementMessage.equals(AcknowledgementMessage.END)) {
             if(remainingContent.length() == 0 && messages.isEmpty()) {
               Log.outln("Received code with type " + type + " and sequence number " + sequenceNumber);
-              parseMessage(new Message("", true), type, sequenceNumber);
+              parseMessage(new Message("", true, false), type, sequenceNumber);
             } else {
               for (Message message : messages)
                 parseMessage(message.unescape(), type, sequenceNumber);
@@ -412,7 +412,7 @@ class QRProtoSocket {
 
     private void parseMessage(Message message, QRCodeType type, int sequenceNumber) {
       String content = message.getMessage();
-      int contentLength = content.length();
+      int contentLength = message.getMessageLength();
 
       if(connected) {
         switch(type) {
