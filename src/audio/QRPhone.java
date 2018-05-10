@@ -1,6 +1,7 @@
 package audio;
 
 
+import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -114,17 +115,18 @@ public class QRPhone {
     for (int i = 0; i < inputlength; i++) {
       char byteToHandle = (char) (bytes[i] + 128);
       if (byteToHandle == '\u0080') {
-        long charsToSkip = 1;
-        while ((char) (bytes[i++] + 128) == '\u0080' && i < inputlength) {
-          charsToSkip++;
+        long zeroesToAdd = 1;
+        while (i + 1 < inputlength && (char) (bytes[i + 1] + 128) == '\u0080') {
+          zeroesToAdd++;
+          i++;
         }
-        if (charsToSkip <= 6) {
-          for (int j = 0; j < charsToSkip; j++) {
+        if (zeroesToAdd <= 6) {
+          for (int j = 0; j < zeroesToAdd; j++) {
             output.append('\u0080');
           }
         } else {
           output.append('\\');
-          output.append(formatter.format(charsToSkip));
+          output.append(formatter.format(zeroesToAdd));
         }
       } else if (byteToHandle == '\\') {
         output.append("\\\\");
@@ -132,10 +134,7 @@ public class QRPhone {
         output.append(byteToHandle);
       }
     }
-    Log.outln("Compressed message " + inputlength / output.length() + " fold.");
-    if (inputlength / output.length() > 600) {
-      Log.errln(output.toString());
-    }
+    Log.outln("Compressed message " + (float) inputlength / output.length() + " fold.");
     return output.toString();
   }
 
@@ -143,22 +142,27 @@ public class QRPhone {
 
     int outputLength = Integer.parseInt(input.substring(0, 6));
     byte[] output = new byte[outputLength];
-    for (int i = 6; i < outputLength; i++) {
+    int j = 0;
+    for (int i = 6; i < input.length(); i++) {
       char insert = input.charAt(i);
       if (insert == '\\') {
-        i++;
-        if (input.charAt(i) == '\\') {
-          output[i] = (byte) (insert);
-          output[i] -= 128;
+        if (input.charAt(i + 1) == '\\') {
+          output[j] = (byte) (insert);
+          output[j] -= 128;
+          j++;
+          i++;
         } else {
-          for (int j = 0; j < Integer.parseInt(input.substring(i, i + 6)); j++) {
-            output[i] = 0;
+          for (int k = 0; k < Integer.parseInt(input.substring(i + 1, i + 7)); k++) {
+            output[j] = 0;
+            j++;
           }
           i += 6;
         }
+      } else {
+        output[j] = (byte) (insert);
+        output[j] -= 128;
+        j++;
       }
-      output[i] = (byte) (insert);
-      output[i] -= 128;
     }
     ByteArrayOutputStream outputStream = new ByteArrayOutputStream(output.length);
     outputStream.write(output, 0, output.length);
