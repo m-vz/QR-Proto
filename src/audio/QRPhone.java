@@ -29,6 +29,7 @@ public class QRPhone {
   private byte buffer[];
   private QRProto qrProto;
   private LinkedList<String> recordedMessages;
+  private boolean canSend = false;
   private DecimalFormat formatter;
 
   public QRPhone(QRProto proto) {
@@ -180,6 +181,11 @@ public class QRPhone {
       qrProto.sendMessage(convertAudioToString(recordAudio(RECORDING_TIME)));
       while (true) {
         recordedMessages.add(convertAudioToString(recordAudio(RECORDING_TIME)));
+
+        synchronized(this) {
+          if(canSend && !recordedMessages.isEmpty())
+            qrProto.sendMessage(recordedMessages.poll());
+        }
       }
     }
   }
@@ -188,7 +194,9 @@ public class QRPhone {
     AbstractAction a = new AbstractAction() {
       @Override
       public void actionPerformed(ActionEvent e) {
-        qrProto.sendMessage(recordedMessages.poll());
+        synchronized(this) {
+          canSend = true;
+        }
       }
     };
     qrProto.setCanSendCallback(a);

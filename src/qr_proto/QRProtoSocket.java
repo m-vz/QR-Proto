@@ -353,28 +353,30 @@ class QRProtoSocket {
             continue; // not necessary to handle since wrong checksum are never acknowledged
           }
 
-          if(sequenceNumber <= currentSequenceNumber + currentSequenceNumberOffset) { // a message has been read twice
-            continue; // ignore all messages that have been read before
-          } else if(sequenceNumber > currentSequenceNumber + currentSequenceNumberOffset + 1) { // a message has been lost
-            Log.errln("Received code with incorrect sequence number " + sequenceNumber + ".");
-            if(type.equals(QRCodeType.MSG)) {
-              Log.errln("Sending ERR for sequence number " + currentSequenceNumber + " (current offset is " + currentSequenceNumberOffset + ").");
-              synchronized(this) {
-                ackToSend = new QRCode(currentSequenceNumber, true);
+          if(!type.equals(QRCodeType.ERR)) {
+            if(sequenceNumber <= currentSequenceNumber + currentSequenceNumberOffset) { // a message has been read twice
+              continue; // ignore all messages that have been read before
+            } else if(sequenceNumber > currentSequenceNumber + currentSequenceNumberOffset + 1) { // a message has been lost
+              Log.errln("Received code with incorrect sequence number " + sequenceNumber + ".");
+              if(type.equals(QRCodeType.MSG)) {
+                Log.errln("Sending ERR for sequence number " + currentSequenceNumber + " (current offset is " + currentSequenceNumberOffset + ").");
+                synchronized(this) {
+                  ackToSend = new QRCode(currentSequenceNumber, true);
 
-                if(errorCallback != null)
-                  errorCallback.actionPerformed(new ActionEvent(this, 0, "error"));
+                  if(errorCallback != null)
+                    errorCallback.actionPerformed(new ActionEvent(this, 0, "error"));
+                }
+              }
+              continue;
+            } else {
+              synchronized(this) {
+                ackToSend = null;
               }
             }
-            continue;
-          } else {
-            synchronized(this) {
-              ackToSend = null;
-            }
-          }
 
-          if(sentERR)
-            panel.displayNothing();
+            if(sentERR)
+              panel.displayNothing();
+          }
 
           String content = remainingContent + rawContent.substring(HEADER_SIZE, rawContentLength - CHECKSUM_SIZE); // concat the remaining content from the last message
 
