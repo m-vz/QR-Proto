@@ -27,6 +27,7 @@ public class TestWindow extends JFrame {
     super();
 
     this.qrProto = qrProto;
+    this.qrPhone = new QRPhone(qrProto);
 
     setLayout(new GridBagLayout());
     GridBagConstraints c;
@@ -99,24 +100,6 @@ public class TestWindow extends JFrame {
         testPanel.connectButton.setEnabled(true);
       }
     });
-    qrProto.setCanSendCallback(new AbstractAction() {
-      @Override
-      public void actionPerformed(ActionEvent e) {
-
-      }
-    });
-    qrProto.setReceivedCallback(new AbstractAction() {
-      @Override
-      public void actionPerformed(ActionEvent e) {
-        qrPhone.playAudio(qrPhone.convertStringToByteArrayOutputStream(qrProto.getReceivedMessage()));
-      }
-    });
-    qrProto.setErrorCallback(new AbstractAction() {
-      @Override
-      public void actionPerformed(ActionEvent e) {
-
-      }
-    });
     c = new GridBagConstraints();
     c.fill = GridBagConstraints.BOTH;
     c.gridx = 0;
@@ -171,16 +154,17 @@ public class TestWindow extends JFrame {
       testButton = new JButton(new AbstractAction("test") {
         @Override
         public void actionPerformed(ActionEvent e) {
-          qrPhone = new QRPhone(qrProto);
-          qrPhone.startSending();
-          //qrPhone.startReceiving();
+//          qrPhone.startSending();
+          qrPhone.startReceiving();
         }
       });
-      resetButton = new JButton(new AbstractAction("reset") { // TODO: atm, the webcam panel breaks after reset.
+      resetButton = new JButton(new AbstractAction("reset") { // TODO: atm, the webcam breaks after reset.
         @Override
         public void actionPerformed(ActionEvent e) {
           resetButton.setEnabled(false);
           qrProto.reset();
+          qrPhone.stopRecording();
+          qrPhone.stopPlayback();
           connectButton.setEnabled(true);
           disconnectButton.setEnabled(false);
           resetButton.setEnabled(true);

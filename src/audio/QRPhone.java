@@ -1,7 +1,6 @@
 package audio;
 
 
-import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -28,7 +27,9 @@ public class QRPhone {
   private TargetDataLine line;
   private byte buffer[];
   private QRProto qrProto;
-  private LinkedList<String> recordedMessages;
+  private LinkedList<String> recordedMessages, playbackMessages;
+  private Recorder recorder;
+  private Player player;
   private boolean canSend = false;
   private DecimalFormat formatter;
 
@@ -50,8 +51,11 @@ public class QRPhone {
     }
 
     this.qrProto = qrProto;
-    this.recordedMessages = new LinkedList<>();
     this.formatter = new DecimalFormat("000000");
+    this.recordedMessages = new LinkedList<>();
+    this.playbackMessages = new LinkedList<>();
+    this.recorder = new Recorder();
+    this.player = new Player();
   }
 
   public ByteArrayOutputStream recordAudio(long recordingTime) {
@@ -140,7 +144,6 @@ public class QRPhone {
   }
 
   public ByteArrayOutputStream convertStringToByteArrayOutputStream(String input) {
-
     int outputLength = Integer.parseInt(input.substring(0, 6));
     byte[] output = new byte[outputLength];
     int j = 0;
@@ -171,23 +174,57 @@ public class QRPhone {
     return outputStream;
   }
 
+  class Recorder implements Runnable {
+    static final long RECORDING_TIME = 2000;
 
-  class RecordMessages implements Runnable {
+    boolean shouldStop = false;
 
     @Override
     public void run() {
       Log.outln("Thread started");
-      long RECORDING_TIME = 2000;
       qrProto.sendMessage(convertAudioToString(recordAudio(RECORDING_TIME)));
-      while (true) {
-        recordedMessages.add(convertAudioToString(recordAudio(RECORDING_TIME)));
+      while(true) {
+        if(!shouldStop)
+          recordedMessages.add(convertAudioToString(recordAudio(RECORDING_TIME)));
 
         synchronized(this) {
           if(canSend && !recordedMessages.isEmpty())
             qrProto.sendMessage(recordedMessages.poll());
+          else if(recordedMessages.isEmpty())
+            break;
         }
       }
     }
+  }
+
+  class Player implements Runnable {
+    boolean shouldStop = false;
+
+    @Override
+    public void run() {
+      Log.outln("Thread started");
+      while(!shouldStop) {
+        synchronized(this) {
+          if(!playbackMessages.isEmpty())
+            playAudio(convertStringToByteArrayOutputStream(playbackMessages.poll()));
+          else {
+            try {
+              Thread.sleep(10);
+            } catch(InterruptedException e) {
+              e.printStackTrace();
+            }
+          }
+        }
+      }
+    }
+  }
+
+  public void stopRecording() {
+    recorder.shouldStop = true;
+  }
+
+  public void stopPlayback() {
+    player.shouldStop = true;
   }
 
   public void startSending() {
@@ -200,16 +237,21 @@ public class QRPhone {
       }
     };
     qrProto.setCanSendCallback(a);
-    new Thread(new RecordMessages()).start();
+
+    recorder.shouldStop = false;
+    new Thread(recorder).start();
   }
 
   public void startReceiving() {
     AbstractAction a = new AbstractAction() {
       @Override
       public void actionPerformed(ActionEvent e) {
-        playAudio(convertStringToByteArrayOutputStream(qrProto.getReceivedMessage()));
+        playbackMessages.add(qrProto.getReceivedMessage());
       }
     };
     qrProto.setReceivedCallback(a);
+
+    player.shouldStop = false;
+    new Thread(player).start();
   }
 }

@@ -29,9 +29,6 @@ public class Message {
   }
 
   public Message unescape () {
-    if(message.contains("\\b")) {
-      int a = 5;
-    }
     if(escaped) {
       int length = getMessageLength();
       if(complete)
