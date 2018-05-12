@@ -43,6 +43,8 @@ public class TestWindow extends JFrame {
       public void windowClosing(WindowEvent e) {
         Log.outln("Test window closing...");
         qrProto.end();
+        qrPhone.stopRecording();
+        qrPhone.stopPlayback();
       }
 
       @Override
