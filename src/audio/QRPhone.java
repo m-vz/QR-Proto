@@ -1,14 +1,21 @@
 package audio;
 
 
+import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
+import java.nio.ByteBuffer;
 import java.text.DecimalFormat;
+import java.util.Arrays;
 import java.util.InputMismatchException;
 import java.util.LinkedList;
+import java.util.zip.DataFormatException;
+import java.util.zip.Deflater;
+import java.util.zip.Inflater;
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
@@ -105,74 +112,54 @@ public class QRPhone {
   }
 
 
-  public String convertAudioToString(ByteArrayOutputStream stream) {
-    byte[] bytes = stream.toByteArray();
-    int inputlength = bytes.length;
-    StringBuilder output = new StringBuilder();
+  public ByteArrayOutputStream inflate (String inputString){
 
-    if (inputlength < 1000000) {
-      output.append(formatter.format(inputlength));
-    } else {
-      throw new InputMismatchException(
-          "Audio-Input longer than 999999 symbols. Might cause compression errors");//TODO: use Base64 for compression
+    ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+    int outputLength = Integer.parseInt(inputString.substring(0,6));
+    Inflater decompressor = new Inflater();
+    char[] charInput = inputString.toCharArray();
+    byte[] byteInput = new byte[charInput.length-6];
+
+    for (int i=0; i < byteInput.length; i++){
+      byteInput[i] = (byte) (charInput[i+6] + 128);
+    }
+    decompressor.setInput(byteInput, 0, outputLength);
+    byte[] result = new byte[outputLength];
+
+    try {
+      int resultLength = decompressor.inflate(result);
+    } catch (DataFormatException e) {
+      e.printStackTrace();
     }
 
-    for (int i = 0; i < inputlength; i++) {
-      char byteToHandle = (char) (bytes[i] + 128);
-      if (byteToHandle == '\u0080') {
-        long zeroesToAdd = 1;
-        while (i + 1 < inputlength && (char) (bytes[i + 1] + 128) == '\u0080') {
-          zeroesToAdd++;
-          i++;
-        }
-        if (zeroesToAdd < 9) {
-          for (int j = 0; j < zeroesToAdd; j++) {
-            output.append('\u0080');
-          }
-        } else {
-          output.append('\\');
-          output.append(formatter.format(zeroesToAdd));
-        }
-      } else if (byteToHandle == '\\') {
-        output.append("\\\\");
-      } else {
-        output.append(byteToHandle);
-      }
-    }
-    Log.outln("Compressed message " + (float) inputlength / output.length() + " fold.");
-    return output.toString();
-  }
-
-  public ByteArrayOutputStream convertStringToByteArrayOutputStream(String input) {
-    int outputLength = Integer.parseInt(input.substring(0, 6));
-    byte[] output = new byte[outputLength];
-    int j = 0;
-    for (int i = 6; i < input.length(); i++) {
-      char insert = input.charAt(i);
-      if (insert == '\\') {
-        if (input.charAt(i + 1) == '\\') {
-          output[j] = (byte) (insert);
-          output[j] -= 128;
-          j++;
-          i++;
-        } else {
-          for (int k = 0; k < Integer.parseInt(input.substring(i + 1, i + 7)); k++) {
-            output[j] = 0;
-            j++;
-          }
-          i += 6;
-        }
-      } else {
-        output[j] = (byte) (insert);
-        output[j] -= 128;
-        j++;
-      }
-    }
-    ByteArrayOutputStream outputStream = new ByteArrayOutputStream(output.length);
-    outputStream.write(output, 0, output.length);
+    decompressor.end();
+    outputStream.write(result,0,outputLength);
 
     return outputStream;
+
   }
+
+
+  public String deflate (ByteArrayOutputStream inputStream) {
+
+    byte[] input = inputStream.toByteArray();
+    byte[] output = new byte[input.length];
+    Deflater compressor = new Deflater();
+    compressor.setInput(input);
+    compressor.finish();
+    int compressedInputLength = compressor.deflate(output);
+    compressor.end();
+
+    char[] outputString = new char[compressedInputLength];
+    for (int i=0; i < compressedInputLength; i++){
+      outputString[i] = (char) (output[i] + 128);
+    }
+    String result = formatter.format(compressedInputLength);
+    result += new String(outputString);
+    Log.outln("Deflate compressed message " + (float) input.length / result.length() + " fold.");
+    return result;
+  }
+
 
   class Recorder implements Runnable {
     static final long RECORDING_TIME = 2000;
@@ -182,11 +169,11 @@ public class QRPhone {
     @Override
     public void run() {
       Log.outln("Thread started");
-      qrProto.sendMessage(convertAudioToString(recordAudio(RECORDING_TIME)));
+      qrProto.sendMessage(deflate(recordAudio(RECORDING_TIME)));
       while(!shouldStop) {
         synchronized(this) {
           if(!shouldStop)
-            recordedMessages.add(convertAudioToString(recordAudio(RECORDING_TIME)));
+            recordedMessages.add(deflate(recordAudio(RECORDING_TIME)));
 
           if(canSend && !recordedMessages.isEmpty())
             qrProto.sendMessage(recordedMessages.poll());
@@ -204,7 +191,7 @@ public class QRPhone {
       while(!shouldStop) {
         synchronized(this) {
           if(!playbackMessages.isEmpty())
-            playAudio(convertStringToByteArrayOutputStream(playbackMessages.poll()));
+            playAudio(inflate(playbackMessages.poll()));
           else {
             try {
               Thread.sleep(10);

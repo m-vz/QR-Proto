@@ -23,7 +23,7 @@ import qr_proto.util.Log;
  * Created by Aeneas on 18.04.18.
  */
 class QRProtoSocket {
-  private static final int MAX_BUFFER_SIZE = (2953 - QRCode.METADATA_LENGTH - 1)/8; // don't ask
+  public static final int MAX_BUFFER_SIZE = (2953 - QRCode.METADATA_LENGTH - 1)/8; // don't ask
   private static final int SENDER_SLEEP_TIME = 10, RECEIVER_SLEEP_TIME = 10, DISPLAY_TIME = 400;
 
   private volatile boolean connecting, connected, canSend, sentERR = false;
