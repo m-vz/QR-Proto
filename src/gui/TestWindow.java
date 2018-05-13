@@ -7,6 +7,7 @@ import com.github.sarxos.webcam.WebcamResolution;
 import qr_proto.util.Log;
 import qr_proto.QRProto;
 import qr_proto.gui.QRProtoPanel;
+import qr_proto.util.ProfilerPanel;
 
 import javax.swing.*;
 import java.awt.*;
@@ -20,6 +21,7 @@ public class TestWindow extends JFrame {
   private WebcamImagePanel webcamPanel;
   private TestPanel testPanel;
   private QRProtoPanel qrProtoPanel;
+  private ProfilerPanel profilerPanel;
   private QRProto qrProto;
   private QRPhone qrPhone;
 
@@ -83,7 +85,7 @@ public class TestWindow extends JFrame {
     c.gridy = 0;
     add(webcamPanel, c);
 
-    this.testPanel = new TestPanel();
+    testPanel = new TestPanel();
     qrProto.setConnectedCallback(new AbstractAction() {
       @Override
       public void actionPerformed(ActionEvent e) {
@@ -109,22 +111,32 @@ public class TestWindow extends JFrame {
     add(testPanel, c);
 
     c = new GridBagConstraints();
-    c.fill = GridBagConstraints.NONE;
+    c.fill = GridBagConstraints.HORIZONTAL;
+    c.anchor = GridBagConstraints.NORTH;
     c.gridx = 0;
     c.gridy = 2;
     add(qrPhone.getPanel(), c);
 
-    this.qrProtoPanel = qrProto.getPanel();
+    profilerPanel = new ProfilerPanel();
+    c = new GridBagConstraints();
+    c.fill = GridBagConstraints.BOTH;
+    c.anchor = GridBagConstraints.NORTH;
+    c.gridx = 0;
+    c.gridy = 3;
+    add(profilerPanel, c);
+
+    qrProtoPanel = qrProto.getPanel();
     c = new GridBagConstraints();
     c.fill = GridBagConstraints.BOTH;
     c.gridx = 1;
     c.gridy = 0;
-    c.gridheight = 3;
+    c.gridheight = 4;
     add(qrProtoPanel, c);
 
     setBackground(background);
     getContentPane().setBackground(background);
-    qrPhone.getPanel().setBackground(background);
+    qrPhone.getPanel().setBackground(Color.ORANGE);
+    profilerPanel.setBackground(new Color(38, 38, 38));
 
     pack();
     setVisible(true);

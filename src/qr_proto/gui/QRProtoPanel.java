@@ -5,6 +5,7 @@ import qr_proto.qr.QRCode;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.geom.Ellipse2D;
 import java.awt.image.BufferedImage;
 
 public class QRProtoPanel extends JPanel {
@@ -15,9 +16,10 @@ public class QRProtoPanel extends JPanel {
   public QRProtoPanel(int qrCodeDisplaySize) {
     super();
 
-    this.qrCodeImage = new BufferedImage(qrCodeDisplaySize, qrCodeDisplaySize, BufferedImage.TYPE_INT_RGB);
+    qrCodeImage = new BufferedImage(qrCodeDisplaySize, qrCodeDisplaySize, BufferedImage.TYPE_INT_RGB);
     qrCodeImage.createGraphics();
-    this.qrCodeGraphics = (Graphics2D) qrCodeImage.getGraphics();
+    qrCodeGraphics = (Graphics2D) qrCodeImage.getGraphics();
+    qrCodeGraphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
     this.qrCodeDisplaySize = qrCodeDisplaySize;
 
     displayNothing();
@@ -25,7 +27,7 @@ public class QRProtoPanel extends JPanel {
 
   public void displayQRCode(QRCode qrCode) {
     BitMatrix bitMatrix = qrCode.generateBitMatrix();
-    Dimension bitSize = new Dimension(qrCodeDisplaySize/bitMatrix.getWidth(), qrCodeDisplaySize/bitMatrix.getHeight());
+    float bitWidth = (float) qrCodeDisplaySize/bitMatrix.getWidth(), bitHeight = (float) qrCodeDisplaySize/bitMatrix.getHeight();
 
     qrCodeGraphics.setColor(Color.WHITE);
     qrCodeGraphics.fillRect(0, 0, qrCodeDisplaySize, qrCodeDisplaySize);
@@ -34,7 +36,7 @@ public class QRProtoPanel extends JPanel {
     for(int y = 0; y < bitMatrix.getHeight(); y++)
       for(int x = 0; x < bitMatrix.getWidth(); x++)
         if(bitMatrix.get(x, y))
-          qrCodeGraphics.fillRect(bitSize.width*x, bitSize.height*y, bitSize.width, bitSize.height);
+          qrCodeGraphics.fill(new Ellipse2D.Float(bitWidth*x, bitHeight*y, bitWidth, bitHeight));
 
     paintComponent(getGraphics());
   }

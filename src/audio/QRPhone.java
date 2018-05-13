@@ -100,7 +100,7 @@ public class QRPhone {
       line.close();
 
     } catch (IOException e) {//TODO: handle exception
-    } catch (LineUnavailableException e) { //TODO: handle exception
+    } catch (@SuppressWarnings("TryWithIdenticalCatches") LineUnavailableException e) { //TODO: handle exception
     }
   }
 
@@ -219,7 +219,8 @@ public class QRPhone {
 
   public void stopRecording() {
     synchronized(this) {
-      recorder.shouldStop = true;
+      if(recorder != null)
+        recorder.shouldStop = true;
       recordedMessages.clear();
     }
     sending = false;
@@ -227,7 +228,8 @@ public class QRPhone {
 
   public void stopPlayback() {
     synchronized(this) {
-      player.shouldStop = true;
+      if(player != null)
+        player.shouldStop = true;
       playbackMessages.clear();
     }
     receiving = false;
