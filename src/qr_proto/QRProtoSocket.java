@@ -11,6 +11,7 @@ import com.google.zxing.*;
 import com.google.zxing.client.j2se.BufferedImageLuminanceSource;
 import com.google.zxing.common.HybridBinarizer;
 import qr_proto.gui.QRProtoPanel;
+import qr_proto.qr.Message;
 import qr_proto.qr.QRCode;
 
 import javax.swing.*;

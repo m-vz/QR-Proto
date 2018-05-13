@@ -1,4 +1,4 @@
-package qr_proto;
+package qr_proto.qr;
 
 public class Message {
   public static final String MESSAGE_END = "\\0";

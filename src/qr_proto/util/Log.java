@@ -1,6 +1,6 @@
 package qr_proto.util;
 
-import qr_proto.Message;
+import qr_proto.qr.Message;
 import qr_proto.qr.QRCode;
 
 public class Log {

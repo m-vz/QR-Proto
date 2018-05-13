@@ -12,7 +12,6 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.EnumMap;
 import java.util.Map;
-import qr_proto.Message;
 
 
 public class QRCode {
