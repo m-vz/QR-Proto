@@ -99,7 +99,6 @@ public class QRPhone {
           playbackLine.write(playbackBuffer, 0, count);
       }
       playbackLine.drain();
-      playbackLine.close();
 
     } catch (IOException e) {//TODO: handle exception
     }
@@ -155,7 +154,7 @@ public class QRPhone {
 
 
   class Recorder implements Runnable {
-    static final long RECORDING_TIME = 1000;
+    static final long RECORDING_TIME = 2000;
 
     boolean shouldStop = false;
 
