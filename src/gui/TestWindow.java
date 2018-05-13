@@ -139,6 +139,8 @@ public class TestWindow extends JFrame {
     profilerPanel.setBackground(new Color(38, 38, 38));
 
     pack();
+    profilerPanel.init();
+
     setVisible(true);
   }
 
