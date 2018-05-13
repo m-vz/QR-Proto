@@ -4,7 +4,7 @@ import audio.QRPhone;
 import com.github.sarxos.webcam.Webcam;
 import com.github.sarxos.webcam.WebcamPanel;
 import com.github.sarxos.webcam.WebcamResolution;
-import qr_proto.Log;
+import qr_proto.util.Log;
 import qr_proto.QRProto;
 import qr_proto.gui.QRProtoPanel;
 
@@ -108,6 +108,12 @@ public class TestWindow extends JFrame {
     c.gridy = 1;
     add(testPanel, c);
 
+    c = new GridBagConstraints();
+    c.fill = GridBagConstraints.NONE;
+    c.gridx = 0;
+    c.gridy = 2;
+    add(qrPhone.getPanel(), c);
+
     this.qrProtoPanel = qrProto.getPanel();
     c = new GridBagConstraints();
     c.fill = GridBagConstraints.BOTH;
@@ -118,6 +124,7 @@ public class TestWindow extends JFrame {
 
     setBackground(background);
     getContentPane().setBackground(background);
+    qrPhone.getPanel().setBackground(background);
 
     pack();
     setVisible(true);
@@ -156,8 +163,7 @@ public class TestWindow extends JFrame {
       testButton = new JButton(new AbstractAction("test") {
         @Override
         public void actionPerformed(ActionEvent e) {
-//          qrPhone.startSending();
-          qrPhone.startReceiving();
+
         }
       });
       resetButton = new JButton(new AbstractAction("reset") { // TODO: atm, the webcam breaks after reset.

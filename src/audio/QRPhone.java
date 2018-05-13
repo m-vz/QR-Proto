@@ -18,7 +18,7 @@ import javax.sound.sampled.LineUnavailableException;
 import javax.sound.sampled.SourceDataLine;
 import javax.sound.sampled.TargetDataLine;
 import javax.swing.AbstractAction;
-import qr_proto.Log;
+import qr_proto.util.Log;
 import qr_proto.QRProto;
 
 public class QRPhone {
@@ -30,7 +30,8 @@ public class QRPhone {
   private LinkedList<String> recordedMessages, playbackMessages;
   private Recorder recorder;
   private Player player;
-  private boolean canSend = false;
+  private QRPhonePanel panel;
+  private boolean canSend = false, sending = false, receiving = false;
   private DecimalFormat formatter;
 
   public QRPhone(QRProto proto) {
@@ -54,8 +55,7 @@ public class QRPhone {
     this.formatter = new DecimalFormat("000000");
     this.recordedMessages = new LinkedList<>();
     this.playbackMessages = new LinkedList<>();
-    this.recorder = new Recorder();
-    this.player = new Player();
+    this.panel = new QRPhonePanel(this);
   }
 
   public ByteArrayOutputStream recordAudio(long recordingTime) {
@@ -125,7 +125,7 @@ public class QRPhone {
           zeroesToAdd++;
           i++;
         }
-        if (zeroesToAdd <= 6) {
+        if (zeroesToAdd < 9) {
           for (int j = 0; j < zeroesToAdd; j++) {
             output.append('\u0080');
           }
@@ -183,15 +183,13 @@ public class QRPhone {
     public void run() {
       Log.outln("Thread started");
       qrProto.sendMessage(convertAudioToString(recordAudio(RECORDING_TIME)));
-      while(true) {
-        if(!shouldStop)
-          recordedMessages.add(convertAudioToString(recordAudio(RECORDING_TIME)));
-
+      while(!shouldStop) {
         synchronized(this) {
+          if(!shouldStop)
+            recordedMessages.add(convertAudioToString(recordAudio(RECORDING_TIME)));
+
           if(canSend && !recordedMessages.isEmpty())
             qrProto.sendMessage(recordedMessages.poll());
-          else if(recordedMessages.isEmpty())
-            break;
         }
       }
     }
@@ -220,11 +218,19 @@ public class QRPhone {
   }
 
   public void stopRecording() {
-    recorder.shouldStop = true;
+    synchronized(this) {
+      recorder.shouldStop = true;
+      recordedMessages.clear();
+    }
+    sending = false;
   }
 
   public void stopPlayback() {
-    player.shouldStop = true;
+    synchronized(this) {
+      player.shouldStop = true;
+      playbackMessages.clear();
+    }
+    receiving = false;
   }
 
   public void startSending() {
@@ -238,8 +244,9 @@ public class QRPhone {
     };
     qrProto.setCanSendCallback(a);
 
-    recorder.shouldStop = false;
+    recorder = new Recorder();
     new Thread(recorder).start();
+    sending = true;
   }
 
   public void startReceiving() {
@@ -251,7 +258,20 @@ public class QRPhone {
     };
     qrProto.setReceivedCallback(a);
 
-    player.shouldStop = false;
+    player = new Player();
     new Thread(player).start();
+    receiving = true;
+  }
+
+  public QRPhonePanel getPanel() {
+    return panel;
+  }
+
+  public boolean isSending() {
+    return sending;
+  }
+
+  public boolean isReceiving() {
+    return receiving;
   }
 }

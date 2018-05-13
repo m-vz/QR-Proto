@@ -16,6 +16,7 @@ import qr_proto.qr.QRCode;
 import javax.swing.*;
 import qr_proto.qr.QRCode.AcknowledgementMessage;
 import qr_proto.qr.QRCode.QRCodeType;
+import qr_proto.util.Log;
 
 /**
  * Created by Aeneas on 18.04.18.
@@ -254,27 +255,25 @@ class QRProtoSocket {
                   message.escape();
                 sendCode(code);
               } else if(!messages.isEmpty()) {
-                if(remainingBufferSize <= 0 || (System.currentTimeMillis() - lastTime) >= DISPLAY_TIME) {
-                  code = new QRCode(messages, acknowledgementMessage);
+                code = new QRCode(messages, acknowledgementMessage);
 
-                  if(!code.getType().equals(QRCodeType.MSG))
-                    throw new Exception("Message queue can only contain codes of type MSG, but not " + code.getType() + ".");
+                if(!code.getType().equals(QRCodeType.MSG))
+                  throw new Exception("Message queue can only contain codes of type MSG, but not " + code.getType() + ".");
 
-                  if(acknowledgementMessage.equals(AcknowledgementMessage.END))
-                    canSend = false;
-                  currentSequenceNumberOffset++;
+                if(acknowledgementMessage.equals(AcknowledgementMessage.END))
+                  canSend = false;
+                currentSequenceNumberOffset++;
 
-                  code.setSequenceNumber(currentSequenceNumber + currentSequenceNumberOffset);
+                code.setSequenceNumber(currentSequenceNumber + currentSequenceNumberOffset);
 
-                  Log.outln("Sending qr code:");
-                  Log.outln(code);
+                Log.outln("Sending qr code:");
+                Log.outln(code);
 
-                  messages.clear();
-                  remainingBufferSize = MAX_BUFFER_SIZE;
-                  lastTime = 0;
+                messages.clear();
+                remainingBufferSize = MAX_BUFFER_SIZE;
+                lastTime = 0;
 
-                  sendCode(code);
-                }
+                sendCode(code);
               }
             }
           }
