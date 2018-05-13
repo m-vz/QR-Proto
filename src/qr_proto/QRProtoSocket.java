@@ -31,7 +31,6 @@ class QRProtoSocket {
   private volatile String received;
   private LinkedList<Message> messageQueue;
   private LinkedList<QRCode> sentQRCodes, priorityQueue, errorQueue;
-  private QRCode ackToSend;
   private QRProtoPanel panel;
   private AbstractAction connectedCallback, connectingCallback, disconnectedCallback, canSendCallback, receivedCallback, errorCallback;
   private Webcam webcam;
@@ -59,7 +58,6 @@ class QRProtoSocket {
     currentSequenceNumber = 0;
     currentSequenceNumberOffset = 0;
     received = "";
-    ackToSend = null;
     connectedCallback = null;
     connectingCallback = null;
     disconnectedCallback = null;
@@ -201,12 +199,6 @@ class QRProtoSocket {
 
               if(lastTime == 0)
                 lastTime = System.currentTimeMillis();
-            }
-
-            if(ackToSend != null) {
-              priorityQueue.add(ackToSend);
-
-              ackToSend = null;
             }
 
             if(canSend) {
@@ -364,21 +356,21 @@ class QRProtoSocket {
               if(type.equals(QRCodeType.MSG)) {
                 Log.errln("Sending ERR for sequence number " + currentSequenceNumber + " (current offset is " + currentSequenceNumberOffset + ").");
                 synchronized(this) {
-                  ackToSend = new QRCode(currentSequenceNumber, true);
+                  priorityQueue.add(new QRCode(currentSequenceNumber, true));
 
                   if(errorCallback != null)
                     errorCallback.actionPerformed(new ActionEvent(this, 0, "error"));
                 }
               }
               continue;
-            } else {
-              synchronized(this) {
-                ackToSend = null;
-              }
             }
 
-            if(sentERR)
-              panel.displayNothing();
+            synchronized(this) {
+              if(sentERR) {
+                panel.displayNothing();
+                sentERR = false;
+              }
+            }
           }
 
           String content = remainingContent + rawContent.substring(HEADER_SIZE, rawContentLength - CHECKSUM_SIZE); // concat the remaining content from the last message
@@ -422,7 +414,7 @@ class QRProtoSocket {
           case MSG: // content message
             synchronized (this) {
               currentSequenceNumber++;
-              ackToSend = new QRCode(currentSequenceNumber, false);
+              priorityQueue.add(new QRCode(currentSequenceNumber, false));
             }
 
             Log.out("Received content message: ");
