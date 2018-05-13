@@ -85,7 +85,10 @@ class QRProtoSocket {
   }
 
   void sendMessage(String message) {
-    messageQueue.add(new Message(message, true, false).escape());
+    Message msg = new Message(message, true, false).escape();
+    Log.outln("Sending message:");
+    Log.outln(msg);
+    messageQueue.add(msg);
   }
 
   void connect() {
@@ -388,11 +391,11 @@ class QRProtoSocket {
           }
 
           remainingContent = content.substring(current); // this is the remaining content that is not a complete message
-          Log.outln("Received code with type " + type + ", sequence number " + sequenceNumber + (content.length() > 0 ? " with content." : " without any content."));
+          Log.outln("Received qr code:");
+          Log.outln(sequenceNumber, type, acknowledgementMessage, content);
 
           if(acknowledgementMessage.equals(AcknowledgementMessage.END)) {
             if(remainingContent.length() == 0 && messages.isEmpty()) {
-              Log.outln("Received code with type " + type + " and sequence number " + sequenceNumber);
               parseMessage(new Message("", true, false), type, sequenceNumber);
             } else {
               for (Message message : messages)
@@ -422,7 +425,8 @@ class QRProtoSocket {
               ackToSend = new QRCode(currentSequenceNumber, false);
             }
 
-            Log.outln("Received content message:\n" + content);
+            Log.outln("Received content message:");
+            Log.outln(message);
             received = content;
 
             if(receivedCallback != null)
