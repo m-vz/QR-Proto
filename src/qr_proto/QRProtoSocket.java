@@ -86,7 +86,7 @@ class QRProtoSocket {
 
   void sendMessage(String message) {
     Message msg = new Message(message, true, false).escape();
-    Log.outln("Sending message:");
+    Log.out("Sending message: ");
     Log.outln(msg);
     messageQueue.add(msg);
   }
@@ -236,7 +236,7 @@ class QRProtoSocket {
                 }
                 code.setSequenceNumber(currentSequenceNumber + currentSequenceNumberOffset);
 
-                Log.outln("Sending priority qr code:");
+                Log.out("Sending priority qr code: ");
                 Log.outln(code);
 
                 for(Message message: code.getMessages())
@@ -252,7 +252,7 @@ class QRProtoSocket {
                   canSend = false;
                 currentSequenceNumberOffset++;
 
-                Log.outln("Sending error qr code:");
+                Log.out("Sending error qr code: ");
                 Log.outln(code);
 
                 for(Message message: code.getMessages())
@@ -270,7 +270,7 @@ class QRProtoSocket {
 
                 code.setSequenceNumber(currentSequenceNumber + currentSequenceNumberOffset);
 
-                Log.outln("Sending qr code:");
+                Log.out("Sending qr code: ");
                 Log.outln(code);
 
                 messages.clear();
@@ -391,7 +391,7 @@ class QRProtoSocket {
           }
 
           remainingContent = content.substring(current); // this is the remaining content that is not a complete message
-          Log.outln("Received qr code:");
+          Log.out("Received qr code: ");
           Log.outln(sequenceNumber, type, acknowledgementMessage, content);
 
           if(acknowledgementMessage.equals(AcknowledgementMessage.END)) {
@@ -425,7 +425,7 @@ class QRProtoSocket {
               ackToSend = new QRCode(currentSequenceNumber, false);
             }
 
-            Log.outln("Received content message:");
+            Log.out("Received content message: ");
             Log.outln(message);
             received = content;
 
