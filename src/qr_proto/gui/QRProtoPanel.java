@@ -5,7 +5,7 @@ import qr_proto.qr.QRCode;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.geom.Ellipse2D;
+import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 
 public class QRProtoPanel extends JPanel {
@@ -36,7 +36,7 @@ public class QRProtoPanel extends JPanel {
     for(int y = 0; y < bitMatrix.getHeight(); y++)
       for(int x = 0; x < bitMatrix.getWidth(); x++)
         if(bitMatrix.get(x, y))
-          qrCodeGraphics.fill(new Ellipse2D.Float(bitWidth*x, bitHeight*y, bitWidth, bitHeight));
+          qrCodeGraphics.fill(new Rectangle2D.Float(bitWidth*x, bitHeight*y, bitWidth, bitHeight));
 
     paintComponent(getGraphics());
   }

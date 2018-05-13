@@ -388,7 +388,7 @@ class QRProtoSocket {
           }
 
           remainingContent = content.substring(current); // this is the remaining content that is not a complete message
-          Log.outln("Received code with type " + type + ", sequence number " + sequenceNumber + (content.length() > 0 ? " and content: " + content : " without any content."));
+          Log.outln("Received code with type " + type + ", sequence number " + sequenceNumber + (content.length() > 0 ? " with content." : " without any content."));
 
           if(acknowledgementMessage.equals(AcknowledgementMessage.END)) {
             if(remainingContent.length() == 0 && messages.isEmpty()) {

@@ -4,6 +4,8 @@ import qr_proto.qr.Message;
 import qr_proto.qr.QRCode;
 
 public class Log {
+  public static final boolean DISPLAY_MESSAGES = false;
+
   public static synchronized void err(String message) {
     System.err.print(message);
   }
@@ -25,9 +27,10 @@ public class Log {
     if(code.getMessages().isEmpty())
       outln("} without any messages.");
     else {
-      outln("} with messages:");
-      for(Message message: code.getMessages())
-        outln(message.getMessage());
+      outln("} with messages" + (DISPLAY_MESSAGES ? ":" : "."));
+      if(DISPLAY_MESSAGES)
+        for(Message message: code.getMessages())
+          outln(message.getMessage());
     }
   }
 
