@@ -1,17 +1,11 @@
 package audio;
 
-
-import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
-import java.nio.ByteBuffer;
 import java.text.DecimalFormat;
-import java.util.Arrays;
-import java.util.InputMismatchException;
 import java.util.LinkedList;
 import java.util.zip.DataFormatException;
 import java.util.zip.Deflater;
@@ -31,8 +25,9 @@ import qr_proto.QRProto;
 public class QRPhone {
 
   private AudioFormat format;
-  private TargetDataLine line;
-  private byte buffer[];
+  private TargetDataLine recordingLine;
+  private SourceDataLine playbackLine;
+  private byte recodingBuffer[], playbackBuffer[];
   private QRProto qrProto;
   private LinkedList<String> recordedMessages, playbackMessages;
   private Recorder recorder;
@@ -49,13 +44,20 @@ public class QRPhone {
       boolean bigEndian, QRProto qrProto) {
     format = new AudioFormat(sampleRate, sampleSizeInBits, channels, signed, bigEndian);
     try {
-      Info info = new Info(TargetDataLine.class, format);
-      line = (TargetDataLine) AudioSystem.getLine(info); //~= input stream
-      line.open(format);
-      line.start();
+      DataLine.Info info = new Info(TargetDataLine.class, format);
+      recordingLine = (TargetDataLine) AudioSystem.getLine(info); //~= input stream
+      recordingLine.open(format);
+      recordingLine.start();
+
+      info = new DataLine.Info(SourceDataLine.class, format);
+      playbackLine = (SourceDataLine) AudioSystem.getLine(info);
+      playbackLine.open(format);
+      playbackLine.start();
+
       int bufferSize = (int) format.getSampleRate() * format.getFrameSize();
-      buffer = new byte[bufferSize];
-    } catch (LineUnavailableException e) {//TODO: handle exception
+      recodingBuffer = new byte[bufferSize];
+      playbackBuffer = new byte[bufferSize];
+    } catch (LineUnavailableException e) { // TODO: handle exception
     }
 
     this.qrProto = qrProto;
@@ -73,10 +75,9 @@ public class QRPhone {
 
     try {
       while (!timeout) {
-        int count = line.read(buffer, 0, buffer.length);
-        if (count > 0) {
-          out.write(buffer, 0, count);
-        }
+        int count = recordingLine.read(recodingBuffer, 0, recodingBuffer.length);
+        if (count > 0)
+          out.write(recodingBuffer, 0, count);
         timeout = System.currentTimeMillis() - startTime > recordingTime;
       }
       out.close();
@@ -92,25 +93,17 @@ public class QRPhone {
       AudioInputStream ais = new AudioInputStream(input, format,
           audio.length / format.getFrameSize());
 
-      DataLine.Info info = new DataLine.Info(SourceDataLine.class, format);
-      SourceDataLine line = (SourceDataLine) AudioSystem.getLine(info);
-      line.open(format);
-      line.start();
-
       int count;
-      while ((count = ais.read(buffer, 0, buffer.length)) != -1) {
-        if (count > 0) {
-          line.write(buffer, 0, count);
-        }
+      while ((count = ais.read(playbackBuffer, 0, playbackBuffer.length)) != -1) {
+        if (count > 0)
+          playbackLine.write(playbackBuffer, 0, count);
       }
-      line.drain();
-      line.close();
+      playbackLine.drain();
+      playbackLine.close();
 
     } catch (IOException e) {//TODO: handle exception
-    } catch (@SuppressWarnings("TryWithIdenticalCatches") LineUnavailableException e) { //TODO: handle exception
     }
   }
-
 
   public ByteArrayOutputStream inflate (String inputString){
 
@@ -162,7 +155,7 @@ public class QRPhone {
 
 
   class Recorder implements Runnable {
-    static final long RECORDING_TIME = 2000;
+    static final long RECORDING_TIME = 1000;
 
     boolean shouldStop = false;
 
