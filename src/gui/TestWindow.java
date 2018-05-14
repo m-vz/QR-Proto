@@ -15,6 +15,9 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
+import java.util.AbstractMap;
+import java.util.Arrays;
+import java.util.Map;
 
 public class TestWindow extends JFrame {
   public static final Color background = Color.WHITE;
@@ -118,7 +121,10 @@ public class TestWindow extends JFrame {
     c.gridy = 2;
     add(qrPhone.getPanel(), c);
 
-    profilerPanel = new ProfilerPanel();
+    profilerPanel = new ProfilerPanel(
+        new AbstractMap.SimpleEntry<>("round trip time", Color.PINK),
+        new AbstractMap.SimpleEntry<>("Bps", Color.GREEN)
+    );
     c = new GridBagConstraints();
     c.fill = GridBagConstraints.BOTH;
     c.anchor = GridBagConstraints.NORTH;
@@ -178,22 +184,26 @@ public class TestWindow extends JFrame {
       testButton = new JButton(new AbstractAction("test") {
         @Override
         public void actionPerformed(ActionEvent e) {
+          int size = 100;
           new Thread(() -> {
             qrProto.setCanSendCallback(new AbstractAction() {
               @Override
               public void actionPerformed(ActionEvent e) {
-                profilerPanel.addData((float) Profiler.endMeasurement("test"));
-                Profiler.startMeasurement("test");
+                long roundTripTime = Profiler.endMeasurement("rtt");
+                float bytesPerSeconds = size/(roundTripTime/1000);
+                profilerPanel.addToData(new AbstractMap.SimpleEntry<>("round trip time", (float) roundTripTime), new AbstractMap.SimpleEntry<>("Bps", bytesPerSeconds));
+
+                Profiler.startMeasurement("rtt");
                 StringBuilder testData = new StringBuilder();
-                for(int i = 0; i < 100; i++)
-                  testData.append(i);
+                for(int i = 0; i < size; i++)
+                  testData.append(Math.round(100*Math.random()));
                 qrProto.sendMessage(testData.toString());
               }
             });
-            Profiler.startMeasurement("test");
+            Profiler.startMeasurement("rtt");
             StringBuilder testData = new StringBuilder();
-            for(int i = 0; i < 100; i++)
-              testData.append(i);
+            for(int i = 0; i < size; i++)
+              testData.append(Math.round(100*Math.random()));
             qrProto.sendMessage(testData.toString());
           }).start();
         }
