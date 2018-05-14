@@ -66,7 +66,7 @@ public class Message {
 
   public Message unescape () {
     if(escaped) {
-      int length = getMessageLength();
+      int length = message.length();
       if(complete)
         length -= MESSAGE_END.length();
       message = message.substring(0, length).replace("\\b", "\\");
@@ -74,14 +74,14 @@ public class Message {
 
       int uncompressedDataLength = Integer.parseInt(message.substring(0,6));
       Inflater decompresser = new Inflater();
-      char[] charInput = message.toCharArray();
-      byte[] byteInput = new byte[charInput.length-6];
+      byte[] byteInput;
 
-      for (int i=0; i < byteInput.length; i++){
-        byteInput[i] = (byte) (charInput[i+6] + 128);
+      try {
+        byteInput = message.getBytes("UTF-8");
+        decompresser.setInput(byteInput, 0, byteInput.length);
+      } catch(UnsupportedEncodingException e) {
+        e.printStackTrace();
       }
-
-      decompresser.setInput(byteInput, 0, byteInput.length);
 
       byte[] result = new byte[uncompressedDataLength];
       try {
