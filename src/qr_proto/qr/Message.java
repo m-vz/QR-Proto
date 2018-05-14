@@ -46,11 +46,11 @@ public class Message {
       }
 
       compressor.finish();
-      compressor.deflate(output);
+      int compressedDataLength = compressor.deflate(output);
       compressor.end();
 
-      char[] outputString = new char[output.length];
-      for (int i=0; i < output.length; i++){
+      char[] outputString = new char[compressedDataLength];
+      for (int i=0; i < compressedDataLength; i++){
         outputString[i] = (char) (output[i] + 128);
       }
 
@@ -66,6 +66,11 @@ public class Message {
 
   public Message unescape () {
     if(escaped) {
+      int length = getMessageLength();
+      if(complete)
+        length -= MESSAGE_END.length();
+      message = message.substring(0, length).replace("\\b", "\\");
+      escaped = false;
 
       int uncompressedDataLength = Integer.parseInt(message.substring(0,6));
       Inflater decompresser = new Inflater();
@@ -91,12 +96,6 @@ public class Message {
       } catch (UnsupportedEncodingException e) {
         e.printStackTrace();
       }
-
-      int length = getMessageLength();
-      if(complete)
-        length -= MESSAGE_END.length();
-      message = message.substring(0, length).replace("\\b", "\\");
-      escaped = false;
     }
     return this;
   }
