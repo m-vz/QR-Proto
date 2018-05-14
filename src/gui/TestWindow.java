@@ -16,8 +16,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
 import java.util.AbstractMap;
-import java.util.Arrays;
-import java.util.Map;
+import java.util.Random;
 
 public class TestWindow extends JFrame {
   public static final Color background = Color.WHITE;
@@ -122,8 +121,8 @@ public class TestWindow extends JFrame {
     add(qrPhone.getPanel(), c);
 
     profilerPanel = new ProfilerPanel(
-        new AbstractMap.SimpleEntry<>("round trip time", Color.PINK),
-        new AbstractMap.SimpleEntry<>("Bps", Color.GREEN)
+        new ProfilerPanel.ProfilerData("round trip time", "ms", new Color(76, 54, 124)),
+        new ProfilerPanel.ProfilerData("bits per second", "bps", new Color(173, 90, 54))
     );
     c = new GridBagConstraints();
     c.fill = GridBagConstraints.BOTH;
@@ -191,7 +190,10 @@ public class TestWindow extends JFrame {
               public void actionPerformed(ActionEvent e) {
                 long roundTripTime = Profiler.endMeasurement("rtt");
                 float bytesPerSeconds = size/(Math.max((float) roundTripTime, 1)/1000);
-                profilerPanel.addToData(new AbstractMap.SimpleEntry<>("round trip time", (float) roundTripTime), new AbstractMap.SimpleEntry<>("Bps", bytesPerSeconds));
+                profilerPanel.addToData(
+                    new AbstractMap.SimpleEntry<>("round trip time", (float) roundTripTime),
+                    new AbstractMap.SimpleEntry<>("bits per second", bytesPerSeconds)
+                );
 
                 Profiler.startMeasurement("rtt");
                 StringBuilder testData = new StringBuilder();
@@ -206,6 +208,18 @@ public class TestWindow extends JFrame {
               testData.append(Math.round(100*Math.random()));
             qrProto.sendMessage(testData.toString());
           }).start();
+//          Random r1 = new Random(), r2 = new Random();
+//          for(int i = 0; i < 100; i++) {
+//            profilerPanel.addToData(
+//                new AbstractMap.SimpleEntry<>("round trip time", r1.nextFloat()*100),
+//                new AbstractMap.SimpleEntry<>("bits per second", r2.nextFloat()*100*8)
+//            );
+//            try {
+//              Thread.sleep(100);
+//            } catch(InterruptedException e1) {
+//              e1.printStackTrace();
+//            }
+//          }
         }
       });
       resetButton = new JButton(new AbstractAction("reset") { // TODO: atm, the webcam breaks after reset.
