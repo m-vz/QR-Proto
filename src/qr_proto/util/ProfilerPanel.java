@@ -68,14 +68,18 @@ public class ProfilerPanel extends JPanel {
     checkDataSizes();
 
     if(dataSize > 0) {
+      if(removeZero)
+        dataSize--;
+
       Dimension graphSizeWithoutAxes = new Dimension(graphSize.width - LEFT_AXIS_WIDTH, graphSize.height - BOTTOM_AXIS_WIDTH);
       float distance = (float) graphSizeWithoutAxes.width/Math.max(dataSize - 1, 1);
 
       // clear
-      graphGraphics.setColor(Color.WHITE);
+      graphGraphics.setColor(getBackground());
       graphGraphics.fill(new Rectangle2D.Float(0, 0, graphSize.width, graphSize.height));
 
       // axis lines
+      graphGraphics.setColor(Color.BLACK);
       graphGraphics.draw(new Line2D.Float(LEFT_AXIS_WIDTH, TOP_GAP, LEFT_AXIS_WIDTH, graphSizeWithoutAxes.height));
       graphGraphics.draw(new Line2D.Float(LEFT_AXIS_WIDTH, graphSizeWithoutAxes.height, graphSize.width, graphSizeWithoutAxes.height));
 
@@ -99,25 +103,23 @@ public class ProfilerPanel extends JPanel {
 
         graphGraphics.setColor(d.color);
         // lines
-        for(int i = 1; i < data.size(); i++)
+        for(int i = 1; i < Math.max(dataSize, 2); i++)
           graphGraphics.draw(new Line2D.Float(LEFT_AXIS_WIDTH + (i - 1)*distance, graphSizeWithoutAxes.height - d.data.get(i - 1)*heightScale, LEFT_AXIS_WIDTH + i*distance, graphSizeWithoutAxes.height - d.data.get(i)*heightScale));
         // dots and bottom axis
-        for(int i = 0; i < data.size(); i++)
+        for(int i = 0; i < Math.max(dataSize, 2); i++)
           graphGraphics.fill(new Ellipse2D.Float(LEFT_AXIS_WIDTH + i*distance - DOT_SIZE_HALF, graphSizeWithoutAxes.height - d.data.get(i)*heightScale - DOT_SIZE_HALF, DOT_SIZE, DOT_SIZE));
+      }
+
+      if(removeZero)
+        removeZero = false;
+      if(dataSize == 1) {
+        dataSize++;
+        removeZero = true;
       }
     } else {
       String msg = "no data.";
       graphGraphics.setFont(graphFont);
       graphGraphics.drawString(msg, (graphSize.width - graphGraphics.getFontMetrics().stringWidth(msg))/2, (graphSize.height - graphGraphics.getFontMetrics().getHeight())/2);
-    }
-
-    if(removeZero) {
-      dataSize--;
-      removeZero = false;
-    }
-    if(dataSize == 1) {
-      dataSize++;
-      removeZero = true;
     }
 
     paintComponent(getGraphics());

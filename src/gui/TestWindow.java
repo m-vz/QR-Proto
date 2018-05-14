@@ -190,7 +190,7 @@ public class TestWindow extends JFrame {
               @Override
               public void actionPerformed(ActionEvent e) {
                 long roundTripTime = Profiler.endMeasurement("rtt");
-                float bytesPerSeconds = size/(roundTripTime/1000);
+                float bytesPerSeconds = size/(Math.max((float) roundTripTime, 1)/1000);
                 profilerPanel.addToData(new AbstractMap.SimpleEntry<>("round trip time", (float) roundTripTime), new AbstractMap.SimpleEntry<>("Bps", bytesPerSeconds));
 
                 Profiler.startMeasurement("rtt");
