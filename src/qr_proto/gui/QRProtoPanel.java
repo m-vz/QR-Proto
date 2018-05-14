@@ -1,6 +1,7 @@
 package qr_proto.gui;
 
 import com.google.zxing.common.BitMatrix;
+import java.awt.geom.Rectangle2D;
 import qr_proto.qr.QRCode;
 
 import javax.swing.*;
