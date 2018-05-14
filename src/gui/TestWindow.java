@@ -7,6 +7,7 @@ import com.github.sarxos.webcam.WebcamResolution;
 import qr_proto.util.Log;
 import qr_proto.QRProto;
 import qr_proto.gui.QRProtoPanel;
+import qr_proto.util.Profiler;
 import qr_proto.util.ProfilerPanel;
 
 import javax.swing.*;
@@ -136,7 +137,7 @@ public class TestWindow extends JFrame {
     setBackground(background);
     getContentPane().setBackground(background);
     qrPhone.getPanel().setBackground(Color.ORANGE);
-    profilerPanel.setBackground(new Color(38, 38, 38));
+    profilerPanel.setBackground(background);
 
     pack();
     profilerPanel.init();
@@ -177,7 +178,24 @@ public class TestWindow extends JFrame {
       testButton = new JButton(new AbstractAction("test") {
         @Override
         public void actionPerformed(ActionEvent e) {
-
+          new Thread(() -> {
+            qrProto.setCanSendCallback(new AbstractAction() {
+              @Override
+              public void actionPerformed(ActionEvent e) {
+                profilerPanel.addData((float) Profiler.endMeasurement("test"));
+                Profiler.startMeasurement("test");
+                StringBuilder testData = new StringBuilder();
+                for(int i = 0; i < 100; i++)
+                  testData.append(i);
+                qrProto.sendMessage(testData.toString());
+              }
+            });
+            Profiler.startMeasurement("test");
+            StringBuilder testData = new StringBuilder();
+            for(int i = 0; i < 100; i++)
+              testData.append(i);
+            qrProto.sendMessage(testData.toString());
+          }).start();
         }
       });
       resetButton = new JButton(new AbstractAction("reset") { // TODO: atm, the webcam breaks after reset.
