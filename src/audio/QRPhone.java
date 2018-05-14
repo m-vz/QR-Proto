@@ -108,7 +108,7 @@ public class QRPhone {
     byte[] byteInput = new byte[charInput.length];
 
     for (int i=0; i < byteInput.length; i++){
-      byteInput[i] = (byte) (charInput[i+6] + 128);
+      byteInput[i] = (byte) (charInput[i] + 128);
     }
     outputStream.write(byteInput,0,byteInput.length);
 
