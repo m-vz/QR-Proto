@@ -205,6 +205,7 @@ public class TestWindow extends JFrame {
                   float bytesPerSeconds = size/(Math.max((float) roundTripTime, 1)/1000);
                   Profiler.profileData("bps", bytesPerSeconds);
                   Profiler.profileData("err", numErrors);
+                  Profiler.writeProfiledData();
                   profilerPanel.addToData(
                       new AbstractMap.SimpleEntry<>("round trip time", (float) roundTripTime),
                       new AbstractMap.SimpleEntry<>("bits per second", bytesPerSeconds),
@@ -230,7 +231,12 @@ public class TestWindow extends JFrame {
             }
           }).start();
 //          Random r1 = new Random(), r2 = new Random();
-//          for(int i = 0; i < 100; i++) {
+//          for(int i = 0; i < 20; i++) {
+//            Profiler.profileData("rtt", i);
+//            Profiler.profileData("abb", i);
+//            Profiler.profileData("qq", i);
+//            Profiler.profileData("qrhioaö", i);
+//            Profiler.writeProfiledData();
 //            profilerPanel.addToData(
 //                new AbstractMap.SimpleEntry<>("round trip time", r1.nextFloat()*100),
 //                new AbstractMap.SimpleEntry<>("bits per second", r2.nextFloat()*100*8),

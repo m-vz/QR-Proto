@@ -16,9 +16,7 @@ public class Test {
   }
 
   public static void main(String[] args) {
-    StringBuilder s = new StringBuilder();
-    s.append("\\\\");
-    s.append('a');
+    System.setProperty("sun.java2d.opengl","True");
     Test test = new Test();
     test.startTest();
   }
