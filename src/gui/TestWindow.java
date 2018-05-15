@@ -122,7 +122,8 @@ public class TestWindow extends JFrame {
 
     profilerPanel = new ProfilerPanel(
         new ProfilerPanel.ProfilerData("round trip time", "ms", new Color(76, 54, 124)),
-        new ProfilerPanel.ProfilerData("bits per second", "bps", new Color(173, 90, 54))
+        new ProfilerPanel.ProfilerData("bits per second", "bps", new Color(173, 90, 54)),
+        new ProfilerPanel.ProfilerData("errors per msg", "err", new Color(173, 20, 31))
     );
     c = new GridBagConstraints();
     c.fill = GridBagConstraints.BOTH;
@@ -183,36 +184,52 @@ public class TestWindow extends JFrame {
       testButton = new JButton(new AbstractAction("test") {
         @Override
         public void actionPerformed(ActionEvent e) {
-          int size = 100;
-          new Thread(() -> {
-            qrProto.setCanSendCallback(new AbstractAction() {
-              @Override
-              public void actionPerformed(ActionEvent e) {
-                long roundTripTime = Profiler.endMeasurement("rtt");
-                float bytesPerSeconds = size/(Math.max((float) roundTripTime, 1)/1000);
-                profilerPanel.addToData(
-                    new AbstractMap.SimpleEntry<>("round trip time", (float) roundTripTime),
-                    new AbstractMap.SimpleEntry<>("bits per second", bytesPerSeconds)
-                );
+          int size = 10000;
+          new Thread(new Runnable() {
+            private int numErrors = 0;
 
-                Profiler.startMeasurement("rtt");
-                StringBuilder testData = new StringBuilder();
-                for(int i = 0; i < size; i++)
-                  testData.append(Math.round(100*Math.random()));
-                qrProto.sendMessage(testData.toString());
-              }
-            });
-            Profiler.startMeasurement("rtt");
-            StringBuilder testData = new StringBuilder();
-            for(int i = 0; i < size; i++)
-              testData.append(Math.round(100*Math.random()));
-            qrProto.sendMessage(testData.toString());
+            @Override
+            public void run() {
+              qrProto.setErrorCallback(new AbstractAction() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                  numErrors++;
+                }
+              });
+              qrProto.setCanSendCallback(new AbstractAction() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                  long roundTripTime = Profiler.endMeasurement("rtt");
+                  float bytesPerSeconds = size/(Math.max((float) roundTripTime, 1)/1000);
+                  Profiler.profileData("bps", bytesPerSeconds);
+                  Profiler.profileData("err", numErrors);
+                  profilerPanel.addToData(
+                      new AbstractMap.SimpleEntry<>("round trip time", (float) roundTripTime),
+                      new AbstractMap.SimpleEntry<>("bits per second", bytesPerSeconds),
+                      new AbstractMap.SimpleEntry<>("errors per msg", (float) numErrors)
+                  );
+                  numErrors = 0;
+
+                  Profiler.startMeasurement("rtt");
+                  StringBuilder testData = new StringBuilder();
+                  for(char i = 0; i < size; i++)
+                    testData.append(i);
+                  qrProto.sendMessage(testData.toString());
+                }
+              });
+              Profiler.startMeasurement("rtt");
+              StringBuilder testData = new StringBuilder();
+              for(char i = 0; i < size; i++)
+                testData.append(i);
+              qrProto.sendMessage(testData.toString());
+            }
           }).start();
 //          Random r1 = new Random(), r2 = new Random();
 //          for(int i = 0; i < 100; i++) {
 //            profilerPanel.addToData(
 //                new AbstractMap.SimpleEntry<>("round trip time", r1.nextFloat()*100),
-//                new AbstractMap.SimpleEntry<>("bits per second", r2.nextFloat()*100*8)
+//                new AbstractMap.SimpleEntry<>("bits per second", r2.nextFloat()*100*8),
+//                new AbstractMap.SimpleEntry<>("errors per qr code", r2.nextFloat()*5)
 //            );
 //            try {
 //              Thread.sleep(100);

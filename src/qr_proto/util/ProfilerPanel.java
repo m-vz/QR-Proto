@@ -12,7 +12,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 
 public class ProfilerPanel extends JPanel {
-  private static final int LEFT_AXIS_WIDTH = 240, BOTTOM_AXIS_WIDTH = 20, TOP_GAP = 40;
+  private static final int LEFT_AXIS_WIDTH = 250, BOTTOM_AXIS_WIDTH = 20, TOP_GAP = 40;
   private static final float DOT_SIZE = 5, DOT_SIZE_HALF = DOT_SIZE/2, LINE_LENGTH = 16, LEFT_TEXT_PADDING = 14;
   private static final Font
       graphFontSmall = new Font("San Francisco", Font.PLAIN, 20),
@@ -93,20 +93,11 @@ public class ProfilerPanel extends JPanel {
 
       // descriptions
       int axisDescriptionCount = data.size();
-      String text = "max:";
-      float width = graphGraphics.getFontMetrics().stringWidth(text);
-      float height = graphGraphics.getFontMetrics().getHeight();
-      graphGraphics.drawString(text, LEFT_AXIS_WIDTH - LEFT_TEXT_PADDING - LINE_LENGTH - width, TOP_GAP + axisDescriptionCount*height + height/2);
+      drawString("max:", LEFT_AXIS_WIDTH - LEFT_TEXT_PADDING - LINE_LENGTH, TOP_GAP, axisDescriptionCount);
       axisDescriptionCount += data.size() + 1;
-      text = "average:";
-      width = graphGraphics.getFontMetrics().stringWidth(text);
-      height = graphGraphics.getFontMetrics().getHeight();
-      graphGraphics.drawString(text, LEFT_AXIS_WIDTH - LEFT_TEXT_PADDING - LINE_LENGTH - width, TOP_GAP + axisDescriptionCount*height + height/2);
+      drawString("average:", LEFT_AXIS_WIDTH - LEFT_TEXT_PADDING - LINE_LENGTH, TOP_GAP, axisDescriptionCount);
       axisDescriptionCount += data.size() + 1;
-      text = "min:";
-      width = graphGraphics.getFontMetrics().stringWidth(text);
-      height = graphGraphics.getFontMetrics().getHeight();
-      graphGraphics.drawString(text, LEFT_AXIS_WIDTH - LEFT_TEXT_PADDING - LINE_LENGTH - width, TOP_GAP + axisDescriptionCount*height + height/2);
+      drawString("min:", LEFT_AXIS_WIDTH - LEFT_TEXT_PADDING - LINE_LENGTH, TOP_GAP, axisDescriptionCount);
       axisDescriptionCount = 0;
 
       for(ProfilerData d: data.values()) {
@@ -128,22 +119,11 @@ public class ProfilerPanel extends JPanel {
 
         graphGraphics.setColor(d.color);
         // axis descriptions
-        text = d.description;
-        width = graphGraphics.getFontMetrics().stringWidth(text);
-        height = graphGraphics.getFontMetrics().getHeight();
-        graphGraphics.drawString(text, LEFT_AXIS_WIDTH - LEFT_TEXT_PADDING - LINE_LENGTH - width, TOP_GAP + axisDescriptionCount*height + height/2);
-        text = new DecimalFormat("######.00" + d.unit).format(minData);
-        width = graphGraphics.getFontMetrics().stringWidth(text);
-        height = graphGraphics.getFontMetrics().getHeight();
-        graphGraphics.drawString(text, LEFT_AXIS_WIDTH - LEFT_TEXT_PADDING - LINE_LENGTH - width, TOP_GAP + (1 + data.size() + axisDescriptionCount)*height + height/2);
-        text = new DecimalFormat("######.00" + d.unit).format(maxData);
-        width = graphGraphics.getFontMetrics().stringWidth(text);
-        height = graphGraphics.getFontMetrics().getHeight();
-        graphGraphics.drawString(text, LEFT_AXIS_WIDTH - LEFT_TEXT_PADDING - LINE_LENGTH - width, TOP_GAP + (2*(1 + data.size()) + axisDescriptionCount)*height + height/2);
-        text = new DecimalFormat("######.00" + d.unit).format(average);
-        width = graphGraphics.getFontMetrics().stringWidth(text);
-        height = graphGraphics.getFontMetrics().getHeight();
-        graphGraphics.drawString(text, LEFT_AXIS_WIDTH - LEFT_TEXT_PADDING - LINE_LENGTH - width, TOP_GAP + (3*(1 + data.size()) + axisDescriptionCount)*height + height/2);
+        DecimalFormat formatter = new DecimalFormat("######.00" + d.unit);
+        drawString(d.description, LEFT_AXIS_WIDTH - LEFT_TEXT_PADDING - LINE_LENGTH, TOP_GAP, axisDescriptionCount);
+        drawString(formatter.format(maxData), LEFT_AXIS_WIDTH - LEFT_TEXT_PADDING - LINE_LENGTH, TOP_GAP, (1 + data.size() + axisDescriptionCount));
+        drawString(formatter.format(average), LEFT_AXIS_WIDTH - LEFT_TEXT_PADDING - LINE_LENGTH, TOP_GAP, (2*(1 + data.size()) + axisDescriptionCount));
+        drawString(formatter.format(minData), LEFT_AXIS_WIDTH - LEFT_TEXT_PADDING - LINE_LENGTH, TOP_GAP, (3*(1 + data.size()) + axisDescriptionCount));
         axisDescriptionCount++;
         // lines
         for(int i = 1; i < Math.max(dataSize, 2); i++)
@@ -166,6 +146,12 @@ public class ProfilerPanel extends JPanel {
     }
 
     paintComponent(getGraphics());
+  }
+
+  private void drawString(String text, float x, float y, int lineMultiplier) {
+    float width = graphGraphics.getFontMetrics().stringWidth(text);
+    float height = graphGraphics.getFontMetrics().getHeight();
+    graphGraphics.drawString(text, x - width, y + lineMultiplier*height + height/2);
   }
 
   private void checkDataSizes() {
