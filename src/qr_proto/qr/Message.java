@@ -33,24 +33,21 @@ public class Message {
   public Message escape (){
     if(!escaped) {
       byte[] input;
-      byte[] output = new byte[message.length()];
-      Deflater compressor = new Deflater();
+      byte[] output = new byte[message.length()+100];
+      Deflater compressor = new Deflater(Deflater.BEST_COMPRESSION,true);
 
       try {
         input = message.getBytes("UTF-8");
-        System.out.println("Raw input data: " + Arrays.toString(input));
         compressor.setInput(input);
         message = formatter.format(input.length);
       } catch (UnsupportedEncodingException e) {
         e.printStackTrace();
-        Log.errln("Compression error");
       }
 
       compressor.finish();
       int compressedDataLength = compressor.deflate(output);
       compressor.end();
 
-      System.out.println("Compressed input data: " + Arrays.toString(output));
       char[] outputString = new char[compressedDataLength];
       for (int i=0; i < compressedDataLength; i++){
         outputString[i] = (char)(output[i] + 128);
@@ -75,7 +72,7 @@ public class Message {
       escaped = false;
 
       int uncompressedDataLength = Integer.parseInt(message.substring(0,6));
-      Inflater decompresser = new Inflater();
+      Inflater decompresser = new Inflater(true);
 
 
       char[] charInput = message.toCharArray();
@@ -84,21 +81,17 @@ public class Message {
       for (int i=0; i < byteInput.length; i++){
         byteInput[i] = (byte) (charInput[i+6] + 128);
       }
-      System.out.println("Content of received msg: " + new String(charInput));
-      System.out.println("Compressed output data: " + Arrays.toString(byteInput));
+
       decompresser.setInput(byteInput, 0, byteInput.length);
 
       byte[] result = new byte[uncompressedDataLength];
       try {
-        int aa = byteInput.length;
-        int a = decompresser.inflate(result);
-        long ac = decompresser.getRemaining();
-        int b = 4;
+        decompresser.inflate(result);
       } catch (DataFormatException e) {
         e.printStackTrace();
       }
       decompresser.end();
-      System.out.println("Raw output data: " + Arrays.toString(result));
+
       try {
         message = new String(result, 0, uncompressedDataLength, "UTF-8");
       } catch (UnsupportedEncodingException e) {
@@ -119,13 +112,5 @@ public class Message {
   @Override
   public String toString() {
     return getMessage();
-  }
-
-  public static void main(String[] args){
-    Message a = new Message("abbbb",true,false);
-    a.escape();
-    Log.outln(a);
-    a.unescape();
-    Log.outln(a);
   }
 }
