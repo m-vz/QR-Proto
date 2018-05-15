@@ -128,7 +128,7 @@ public class TestWindow extends JFrame {
         new ProfilerPanel.ProfilerData("round trip time", "ms", new Color(76, 54, 124)),
         new ProfilerPanel.ProfilerData("bits per second", "bps", new Color(173, 90, 54)),
         new ProfilerPanel.ProfilerData("errors per msg", "err", new Color(173, 20, 31)),
-        new ProfilerPanel.ProfilerData("efficiency", "eff", new Color(173, 155, 158))
+        new ProfilerPanel.ProfilerData("efficiency", "eff", new Color(149, 130, 133))
     );
     c = new GridBagConstraints();
     c.fill = GridBagConstraints.BOTH;
@@ -189,7 +189,7 @@ public class TestWindow extends JFrame {
       testButton = new JButton(new AbstractAction("test") {
         @Override
         public void actionPerformed(ActionEvent e) {
-          int size = 200;
+          int size = 2000;
           new Thread(new Runnable() {
             private int numErrors = 0, timesSent = 0;
 
@@ -225,7 +225,7 @@ public class TestWindow extends JFrame {
                     Profiler.startMeasurement("rtt");
                     StringBuilder testData = new StringBuilder();
                     for(char i = 0; i < size; i++)
-                      testData.append('.');
+                      testData.append(Math.random() > 0.5 ? '.' : ',');
                     qrProto.sendMessage(testData.toString());
                   }
                 }
@@ -233,7 +233,7 @@ public class TestWindow extends JFrame {
               Profiler.startMeasurement("rtt");
               StringBuilder testData = new StringBuilder();
               for(char i = 0; i < size; i++)
-                testData.append('.');
+                testData.append(Math.random() > 0.5 ? '.' : ',');
               qrProto.sendMessage(testData.toString());
             }
           }).start();
