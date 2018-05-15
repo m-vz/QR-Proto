@@ -189,7 +189,7 @@ public class TestWindow extends JFrame {
       testButton = new JButton(new AbstractAction("test") {
         @Override
         public void actionPerformed(ActionEvent e) {
-          int size = 10000;
+          int size = 200;
           new Thread(new Runnable() {
             private int numErrors = 0, timesSent = 0;
 
@@ -225,7 +225,7 @@ public class TestWindow extends JFrame {
                     Profiler.startMeasurement("rtt");
                     StringBuilder testData = new StringBuilder();
                     for(char i = 0; i < size; i++)
-                      testData.append(i);
+                      testData.append('.');
                     qrProto.sendMessage(testData.toString());
                   }
                 }
@@ -233,7 +233,7 @@ public class TestWindow extends JFrame {
               Profiler.startMeasurement("rtt");
               StringBuilder testData = new StringBuilder();
               for(char i = 0; i < size; i++)
-                testData.append(i);
+                testData.append('.');
               qrProto.sendMessage(testData.toString());
             }
           }).start();
