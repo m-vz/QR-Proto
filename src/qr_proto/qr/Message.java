@@ -3,15 +3,14 @@ package qr_proto.qr;
 
 import java.io.UnsupportedEncodingException;
 import java.text.DecimalFormat;
-import java.util.Arrays;
 import java.util.zip.DataFormatException;
 import java.util.zip.Deflater;
 import java.util.zip.Inflater;
-import qr_proto.util.Log;
+
+import static qr_proto.util.Config.COMPRESS;
 
 public class Message {
   public static final String MESSAGE_END = "\\0";
-//  public static final boolean COMPRESS = true;
 
   private String message;
   private boolean complete, escaped;
@@ -32,28 +31,30 @@ public class Message {
 
   public Message escape (){
     if(!escaped) {
-      byte[] input;
-      byte[] output = new byte[message.length()+100];
-      Deflater compressor = new Deflater(Deflater.BEST_COMPRESSION,true);
+      if(COMPRESS) {
+        byte[] input;
+        byte[] output = new byte[message.length()+100];
+        Deflater compressor = new Deflater(Deflater.BEST_COMPRESSION,true);
 
-      try {
-        input = message.getBytes("UTF-8");
-        compressor.setInput(input);
-        message = formatter.format(input.length);
-      } catch (UnsupportedEncodingException e) {
-        e.printStackTrace();
+        try {
+          input = message.getBytes("UTF-8");
+          compressor.setInput(input);
+          message = formatter.format(input.length);
+        } catch (UnsupportedEncodingException e) {
+          e.printStackTrace();
+        }
+
+        compressor.finish();
+        int compressedDataLength = compressor.deflate(output);
+        compressor.end();
+
+        char[] outputString = new char[compressedDataLength];
+        for (int i=0; i < compressedDataLength; i++){
+          outputString[i] = (char)(output[i] + 128);
+        }
+
+        message += new String(outputString);
       }
-
-      compressor.finish();
-      int compressedDataLength = compressor.deflate(output);
-      compressor.end();
-
-      char[] outputString = new char[compressedDataLength];
-      for (int i=0; i < compressedDataLength; i++){
-        outputString[i] = (char)(output[i] + 128);
-      }
-
-      message += new String(outputString);
 
       message = message.replace("\\", "\\b");
       if(complete)
@@ -71,31 +72,33 @@ public class Message {
       message = message.substring(0, length).replace("\\b", "\\");
       escaped = false;
 
-      int uncompressedDataLength = Integer.parseInt(message.substring(0,6));
-      Inflater decompresser = new Inflater(true);
+      if(COMPRESS) {
+        int uncompressedDataLength = Integer.parseInt(message.substring(0,6));
+        Inflater decompresser = new Inflater(true);
 
 
-      char[] charInput = message.toCharArray();
-      byte[] byteInput = new byte[charInput.length-6];
+        char[] charInput = message.toCharArray();
+        byte[] byteInput = new byte[charInput.length-6];
 
-      for (int i=0; i < byteInput.length; i++){
-        byteInput[i] = (byte) (charInput[i+6] + 128);
-      }
+        for (int i=0; i < byteInput.length; i++){
+          byteInput[i] = (byte) (charInput[i+6] + 128);
+        }
 
-      decompresser.setInput(byteInput, 0, byteInput.length);
+        decompresser.setInput(byteInput, 0, byteInput.length);
 
-      byte[] result = new byte[uncompressedDataLength];
-      try {
-        decompresser.inflate(result);
-      } catch (DataFormatException e) {
-        e.printStackTrace();
-      }
-      decompresser.end();
+        byte[] result = new byte[uncompressedDataLength];
+        try {
+          decompresser.inflate(result);
+        } catch (DataFormatException e) {
+          e.printStackTrace();
+        }
+        decompresser.end();
 
-      try {
-        message = new String(result, 0, uncompressedDataLength, "UTF-8");
-      } catch (UnsupportedEncodingException e) {
-        e.printStackTrace();
+        try {
+          message = new String(result, 0, uncompressedDataLength, "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+          e.printStackTrace();
+        }
       }
     }
     return this;

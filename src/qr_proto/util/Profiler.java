@@ -1,7 +1,5 @@
 package qr_proto.util;
 
-import qr_proto.QRProtoSocket;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -10,11 +8,15 @@ import java.nio.file.StandardOpenOption;
 import java.time.LocalDate;
 import java.util.HashMap;
 
+import static qr_proto.util.Config.COMPRESS;
+import static qr_proto.util.Config.DISPLAY_TIME;
+import static qr_proto.util.Config.MAX_BUFFER_SIZE;
+
 public class Profiler {
   public static volatile boolean logMeasurements = true;
 
   private static volatile HashMap<String, Long> measurements = new HashMap<>();
-  private static volatile Path logPath = Paths.get("profiler/profiler_" + QRProtoSocket.DISPLAY_TIME + "_" + QRProtoSocket.MAX_BUFFER_SIZE + "_" + LocalDate.now() + ".log");
+  private static volatile Path logPath = Paths.get("profiler/profiler_" + DISPLAY_TIME + "_" + MAX_BUFFER_SIZE + "_" + (COMPRESS ? "compressed_" : "uncompressed_") + LocalDate.now() + ".log");
 
   public static synchronized void startMeasurement(String name) {
     measurements.put(name, System.currentTimeMillis());
@@ -77,7 +79,7 @@ public class Profiler {
         Files.createFile(logPath);
         Files.write(logPath, ("name,data,display_time,max_size\n").getBytes(), StandardOpenOption.APPEND);
       }
-      Files.write(logPath, (name + "," + data + "," + QRProtoSocket.DISPLAY_TIME + "," + QRProtoSocket.MAX_BUFFER_SIZE + "\n").getBytes(), StandardOpenOption.APPEND);
+      Files.write(logPath, (name + "," + data + "," + DISPLAY_TIME + "," + MAX_BUFFER_SIZE + "\n").getBytes(), StandardOpenOption.APPEND);
     } catch(IOException e) {
       e.printStackTrace();
     }

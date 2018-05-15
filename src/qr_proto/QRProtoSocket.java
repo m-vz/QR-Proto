@@ -19,12 +19,14 @@ import qr_proto.qr.QRCode.AcknowledgementMessage;
 import qr_proto.qr.QRCode.QRCodeType;
 import qr_proto.util.Log;
 
+import static qr_proto.util.Config.DISPLAY_TIME;
+import static qr_proto.util.Config.MAX_BUFFER_SIZE;
+
 /**
  * Created by Aeneas on 18.04.18.
  */
 public class QRProtoSocket {
-  public static final int MAX_BUFFER_SIZE = (2953 - QRCode.METADATA_LENGTH - 1)/2; // don't ask
-  public static final int SENDER_SLEEP_TIME = 10, RECEIVER_SLEEP_TIME = 10, DISPLAY_TIME = 100;
+  public static final int SENDER_SLEEP_TIME = 10, RECEIVER_SLEEP_TIME = 10;
 
   private volatile boolean connecting, connected, canSend, sentERR = false;
   private volatile int currentSequenceNumber, currentSequenceNumberOffset;

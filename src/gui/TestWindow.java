@@ -186,7 +186,7 @@ public class TestWindow extends JFrame {
         public void actionPerformed(ActionEvent e) {
           int size = 10000;
           new Thread(new Runnable() {
-            private int numErrors = 0;
+            private int numErrors = 0, timesSent = 0;
 
             @Override
             public void run() {
