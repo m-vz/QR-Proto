@@ -6,6 +6,7 @@ import java.text.DecimalFormat;
 import java.util.zip.DataFormatException;
 import java.util.zip.Deflater;
 import java.util.zip.Inflater;
+import qr_proto.util.Log;
 
 import static qr_proto.util.Config.COMPRESS;
 
@@ -32,9 +33,10 @@ public class Message {
   public Message escape (){
     if(!escaped) {
       if(COMPRESS) {
+        int messageLength = getMessageLength();
         byte[] input;
-        byte[] output = new byte[message.length()+100];
-        Deflater compressor = new Deflater(Deflater.BEST_COMPRESSION,true);
+        byte[] output = new byte[message.length() + 100];
+        Deflater compressor = new Deflater(Deflater.BEST_COMPRESSION, true);
 
         try {
           input = message.getBytes("UTF-8");
@@ -49,13 +51,13 @@ public class Message {
         compressor.end();
 
         char[] outputString = new char[compressedDataLength];
-        for (int i=0; i < compressedDataLength; i++){
-          outputString[i] = (char)(output[i] + 128);
+        for (int i = 0; i < compressedDataLength; i++) {
+          outputString[i] = (char) (output[i] + 128);
         }
 
         message += new String(outputString);
+        Log.outln("Message compressed by factor: " + (float) messageLength / getMessageLength());
       }
-
       message = message.replace("\\", "\\b");
       if(complete)
         message += MESSAGE_END;
