@@ -18,6 +18,8 @@ import java.awt.event.WindowListener;
 import java.util.AbstractMap;
 import java.util.Random;
 
+import static qr_proto.util.Config.DISPLAY_TIME;
+import static qr_proto.util.Config.MAX_BUFFER_SIZE;
 import static qr_proto.util.Config.NUMBER_OF_TEST_MESSAGES;
 
 public class TestWindow extends JFrame {
@@ -125,7 +127,8 @@ public class TestWindow extends JFrame {
     profilerPanel = new ProfilerPanel(
         new ProfilerPanel.ProfilerData("round trip time", "ms", new Color(76, 54, 124)),
         new ProfilerPanel.ProfilerData("bits per second", "bps", new Color(173, 90, 54)),
-        new ProfilerPanel.ProfilerData("errors per msg", "err", new Color(173, 20, 31))
+        new ProfilerPanel.ProfilerData("errors per msg", "err", new Color(173, 20, 31)),
+        new ProfilerPanel.ProfilerData("efficiency", "eff", new Color(173, 155, 158))
     );
     c = new GridBagConstraints();
     c.fill = GridBagConstraints.BOTH;
@@ -202,19 +205,23 @@ public class TestWindow extends JFrame {
                 @Override
                 public void actionPerformed(ActionEvent e) {
                   long roundTripTime = Profiler.endMeasurement("rtt");
-                  float bytesPerSeconds = size/(Math.max((float) roundTripTime, 1)/1000);
-                  Profiler.profileData("bps", bytesPerSeconds);
+                  float bytesPerSecond = size/(Math.max((float) roundTripTime, 1)/1000);
+                  float maxBytesPerSecond = 1000f/DISPLAY_TIME*MAX_BUFFER_SIZE;
+                  float efficiency = bytesPerSecond/maxBytesPerSecond;
+                  Profiler.profileData("bps", bytesPerSecond);
                   Profiler.profileData("err", numErrors);
+                  Profiler.profileData("eff", efficiency);
                   Profiler.writeProfiledData();
                   profilerPanel.addToData(
                       new AbstractMap.SimpleEntry<>("round trip time", (float) roundTripTime),
-                      new AbstractMap.SimpleEntry<>("bits per second", bytesPerSeconds),
-                      new AbstractMap.SimpleEntry<>("errors per msg", (float) numErrors)
+                      new AbstractMap.SimpleEntry<>("bits per second", bytesPerSecond),
+                      new AbstractMap.SimpleEntry<>("errors per msg", (float) numErrors),
+                      new AbstractMap.SimpleEntry<>("efficiency", efficiency)
                   );
                   numErrors = 0;
                   timesSent++;
 
-                  if(timesSent <= NUMBER_OF_TEST_MESSAGES) {
+                  if(timesSent < NUMBER_OF_TEST_MESSAGES) {
                     Profiler.startMeasurement("rtt");
                     StringBuilder testData = new StringBuilder();
                     for(char i = 0; i < size; i++)
