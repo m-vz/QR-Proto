@@ -1,8 +1,8 @@
-import audio.QRPhone;
 import com.github.sarxos.webcam.WebcamResolution;
 import gui.TestWindow;
-import java.io.ByteArrayOutputStream;
 import qr_proto.QRProto;
+
+import static qr_proto.util.Config.QR_CODE_SIZE;
 
 
 public class Test {
@@ -11,7 +11,7 @@ public class Test {
   private TestWindow window;
 
   private void startTest() {
-    qrProto = new QRProto(750, WebcamResolution.FHD.getSize());
+    qrProto = new QRProto(QR_CODE_SIZE, WebcamResolution.FHD.getSize());
     window = new TestWindow(qrProto);
   }
 
