@@ -9,15 +9,13 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
-import static qr_proto.util.Config.COMPRESS;
-import static qr_proto.util.Config.DISPLAY_TIME;
-import static qr_proto.util.Config.MAX_BUFFER_SIZE;
+import static qr_proto.util.Config.*;
 
 public class Profiler {
   public static volatile boolean logMeasurements = true;
 
   private static volatile HashMap<String, Long> measurements = new HashMap<>();
-  private static volatile Path logPath = Paths.get("profiler/profiler_" + DISPLAY_TIME + "_" + MAX_BUFFER_SIZE + "_" + (COMPRESS ? "compressed_" : "uncompressed_") + LocalDateTime.now() + ".csv");
+  private static volatile Path logPath = Paths.get("profiler/profiler_" + DISPLAY_TIME + "ms_" + MAX_BUFFER_SIZE + "_" + DISTANCE + "cm_" + (COMPRESS ? "compressed_" : "uncompressed_") + LocalDateTime.now() + ".csv");
   private static volatile HashMap<String, String> profileData = new HashMap<>();
 
   public static synchronized void startMeasurement(String name) {
