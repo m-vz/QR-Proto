@@ -18,6 +18,8 @@ import java.awt.event.WindowListener;
 import java.util.AbstractMap;
 import java.util.Random;
 
+import static qr_proto.util.Config.NUMBER_OF_TEST_MESSAGES;
+
 public class TestWindow extends JFrame {
   public static final Color background = Color.WHITE;
 
@@ -209,12 +211,15 @@ public class TestWindow extends JFrame {
                       new AbstractMap.SimpleEntry<>("errors per msg", (float) numErrors)
                   );
                   numErrors = 0;
+                  timesSent++;
 
-                  Profiler.startMeasurement("rtt");
-                  StringBuilder testData = new StringBuilder();
-                  for(char i = 0; i < size; i++)
-                    testData.append(i);
-                  qrProto.sendMessage(testData.toString());
+                  if(timesSent <= NUMBER_OF_TEST_MESSAGES) {
+                    Profiler.startMeasurement("rtt");
+                    StringBuilder testData = new StringBuilder();
+                    for(char i = 0; i < size; i++)
+                      testData.append(i);
+                    qrProto.sendMessage(testData.toString());
+                  }
                 }
               });
               Profiler.startMeasurement("rtt");
