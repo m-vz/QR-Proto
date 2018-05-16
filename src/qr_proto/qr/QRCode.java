@@ -16,7 +16,7 @@ import java.util.Map;
 
 public class QRCode {
   public static final int METADATA_LENGTH = 8 + 4; // header length + checksum length
-  public static final String CHARACTER_SET = "UTF-8";
+  public static final String CHARACTER_SET = "ISO-8859-1";
 
   private static QRCodeWriter qrCodeWriter = new QRCodeWriter();
   private static Map<EncodeHintType, Object> hintMap = new EnumMap<>(EncodeHintType.class);
