@@ -93,7 +93,7 @@ public class QRPhone {
       while(!shouldStop || !recordedMessages.isEmpty()) {
         synchronized(this) {
           if(!shouldStop)
-            recordedMessages.add(ByteArrayOutputStreamtoString(recordAudio()));
+            recordedMessages.add(ByteArrayOutputStreamToString(recordAudio()));
 
           if(canSend && !recordedMessages.isEmpty()) {
             qrProto.sendMessage(recordedMessages.poll());
@@ -138,7 +138,7 @@ public class QRPhone {
       return out; // a ByteArrayOutputStream doesn't need to be closed, so we return it without closing it first
     }
 
-    private String ByteArrayOutputStreamtoString (ByteArrayOutputStream inputStream) {
+    private String ByteArrayOutputStreamToString(ByteArrayOutputStream inputStream) {
       byte[] input = inputStream.toByteArray();
       char[] outputString = new char[input.length];
 
@@ -152,7 +152,7 @@ public class QRPhone {
   public void startPlayer() {
     try {
       playbackLine = (SourceDataLine) AudioSystem.getLine(new Info(SourceDataLine.class, format));
-      playbackLine.open(format, playbackBuffer.length*MIXER_BUFFER_TIME_IN_SECONDS);
+      playbackLine.open(format, playbackBuffer.length);
     } catch(LineUnavailableException e) {
       e.printStackTrace();
     }
@@ -191,7 +191,7 @@ public class QRPhone {
       while(!shouldStop) {
         synchronized(this) {
           if(!playbackMessages.isEmpty()) {
-            playAudio(StringtoByteArrayInputStream(playbackMessages.pop()));
+            playAudio(StringToByteArrayInputStream(playbackMessages.pop()));
           } else {
             try {
               Thread.sleep(10);
@@ -228,7 +228,7 @@ public class QRPhone {
       }
     }
 
-    private ByteArrayInputStream StringtoByteArrayInputStream(String inputString){
+    private ByteArrayInputStream StringToByteArrayInputStream(String inputString){
       char[] charInput = inputString.toCharArray();
       byte[] byteInput = new byte[charInput.length];
 

@@ -33,6 +33,21 @@ public class QRProtoPanel extends JPanel {
     qrCodeGraphics.setColor(Color.WHITE);
     qrCodeGraphics.fillRect(0, 0, qrCodeDisplaySize, qrCodeDisplaySize);
 
+    Color color;
+    switch(qrCode.getType()) {
+      case ACK:
+        color = new Color(83, 198, 0);
+        break;
+      case ERR:
+        color = new Color(198, 49, 0);
+        break;
+      default:
+        color = Color.LIGHT_GRAY;
+    }
+    qrCodeGraphics.setColor(color);
+    qrCodeGraphics.setStroke(new BasicStroke(10));
+    qrCodeGraphics.draw(new Rectangle2D.Float(5, 5, qrCodeDisplaySize - 10, qrCodeDisplaySize - 10));
+
     qrCodeGraphics.setColor(Color.BLACK);
     for(int y = 0; y < bitMatrix.getHeight(); y++)
       for(int x = 0; x < bitMatrix.getWidth(); x++)
