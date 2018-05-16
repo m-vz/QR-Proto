@@ -83,47 +83,38 @@ public class QRPhone {
     return out;
   }
 
-  public void playAudio(ByteArrayOutputStream out) {
+  public void playAudio(ByteArrayInputStream input) {
     try {
-      byte audio[] = out.toByteArray();
-      InputStream input = new ByteArrayInputStream(audio);
-      AudioInputStream ais = new AudioInputStream(input, format,
-          audio.length / format.getFrameSize());
+      AudioInputStream ais = new AudioInputStream(input, format, input.available() / format.getFrameSize());
 
       int count;
-      while ((count = ais.read(playbackBuffer, 0, playbackBuffer.length)) != -1) {
+      while ((count = ais.read(playbackBuffer, 0, playbackBuffer.length)) != -1)
         if (count > 0)
           playbackLine.write(playbackBuffer, 0, count);
-      }
       playbackLine.drain();
 
     } catch (IOException e) {//TODO: handle exception
     }
   }
 
-  public ByteArrayOutputStream StringtoByteArrayOutputStream(String inputString){
-
-    ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+  public ByteArrayInputStream StringtoByteArrayInputStream(String inputString){
     char[] charInput = inputString.toCharArray();
     byte[] byteInput = new byte[charInput.length];
 
-    for (int i=0; i < byteInput.length; i++){
-      byteInput[i] = (byte) (charInput[i] + 128);
-    }
-    outputStream.write(byteInput,0,byteInput.length);
+    for (int i=0; i < byteInput.length; i++)
+      byteInput[i] = (byte) (((byte) charInput[i]) - 128);
 
-    return outputStream;
+    return new ByteArrayInputStream(byteInput);
   }
 
 
   public String ByteArrayOutputStreamtoString (ByteArrayOutputStream inputStream) {
-
     byte[] input = inputStream.toByteArray();
-
     char[] outputString = new char[input.length];
-    for (int i=0; i < input.length; i++){
+
+    for (int i=0; i < input.length; i++)
       outputString[i] = (char) (input[i] + 128);
-    }
+
     return new String(outputString);
   }
 
@@ -161,7 +152,7 @@ public class QRPhone {
       while(!shouldStop) {
         synchronized(this) {
           if(!playbackMessages.isEmpty())
-            playAudio(StringtoByteArrayOutputStream(playbackMessages.poll()));
+            playAudio(StringtoByteArrayInputStream(playbackMessages.poll()));
           else {
             try {
               Thread.sleep(10);
