@@ -137,13 +137,16 @@ public class QRPhone {
     public void run() {
       Log.outln("Thread started");
       qrProto.sendMessage(ByteArrayOutputStreamtoString(recordAudio(RECORDING_TIME)));
+      canSend = false;
       while(!shouldStop) {
         synchronized(this) {
           if(!shouldStop)
             recordedMessages.add(ByteArrayOutputStreamtoString(recordAudio(RECORDING_TIME)));
 
-          if(canSend && !recordedMessages.isEmpty())
+          if(canSend && !recordedMessages.isEmpty()) {
             qrProto.sendMessage(recordedMessages.poll());
+            canSend = false;
+          }
         }
       }
     }
