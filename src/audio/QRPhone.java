@@ -32,7 +32,7 @@ public class QRPhone {
   private boolean canSend = true;
 
   public QRPhone(QRProto proto) {
-    this(4000 /*4000 minimum*/, 8, 1, true, true, proto);
+    this(3000 /*4000 minimum*/, 8, 1, true, true, proto);
   }
 
   private QRPhone(float sampleRate, int sampleSizeInBits, int channels, boolean signed,
