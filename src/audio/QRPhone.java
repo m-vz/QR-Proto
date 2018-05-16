@@ -4,7 +4,6 @@ import java.awt.event.ActionEvent;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.text.DecimalFormat;
 import java.util.LinkedList;
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioInputStream;
@@ -31,7 +30,6 @@ public class QRPhone {
   private Player player;
   private QRPhonePanel panel;
   private boolean canSend = true;
-  private DecimalFormat formatter;
 
   public QRPhone(QRProto proto) {
     this(4000 /*4000 minimum*/, 8, 1, true, true, proto);
@@ -40,7 +38,6 @@ public class QRPhone {
   private QRPhone(float sampleRate, int sampleSizeInBits, int channels, boolean signed,
       boolean bigEndian, QRProto qrProto) {
     this.qrProto = qrProto;
-    this.formatter = new DecimalFormat("000000");
     this.recordedMessages = new LinkedList<>();
     this.playbackMessages = new LinkedList<>();
     this.panel = new QRPhonePanel(this);
@@ -70,7 +67,7 @@ public class QRPhone {
     qrProto.setCanSendCallback(a);
 
     recorder = new Recorder();
-    new Thread(recorder).start();
+    new Thread(recorder, "phone-recorder").start();
   }
 
   @SuppressWarnings("Duplicates")
@@ -90,17 +87,12 @@ public class QRPhone {
     public void run() {
       Log.outln("Recorder started.");
 
-      while(!shouldStop || !recordedMessages.isEmpty()) {
-        synchronized(this) {
-          if(!shouldStop)
-            recordedMessages.add(ByteArrayOutputStreamToString(recordAudio()));
-
+      new Thread(() -> {
+        while(!shouldStop || !recordedMessages.isEmpty()) {
           if(canSend && !recordedMessages.isEmpty()) {
             qrProto.sendMessage(recordedMessages.poll());
             canSend = false;
-          }
-
-          if(shouldStop && !canSend) { // sleep for a short time if no new data is being recorded but there is still data to be sent
+          } else { // sleep for a short time if no new data is being recorded but there is still data to be sent
             try {
               Thread.sleep(10);
             } catch(InterruptedException e) {
@@ -108,13 +100,21 @@ public class QRPhone {
             }
           }
         }
+
+        Log.outln("Phone sender stopped.");
+        panel.canSendAgain();
+      }, "phone-sender").start(); // start sender
+
+      while(!shouldStop) { // start recording
+        synchronized(this) {
+          if(!shouldStop)
+            recordedMessages.add(ByteArrayOutputStreamToString(recordAudio()));
+        }
       }
 
       recordingLine.flush();
       recordingLine.close();
-
       Log.outln("Recorder stopped.");
-      panel.canSendAgain();
     }
 
     private ByteArrayOutputStream recordAudio() {
@@ -168,7 +168,7 @@ public class QRPhone {
     qrProto.setReceivedCallback(a);
 
     player = new Player();
-    new Thread(player).start();
+    new Thread(player, "phone-player").start();
   }
 
   @SuppressWarnings("Duplicates")
@@ -223,8 +223,8 @@ public class QRPhone {
             playbackLine.write(playbackBuffer, 0, count);
 
         playbackLine.stop();
-
-      } catch (IOException e) { // TODO: handle exception
+      } catch (IOException e) {
+        e.printStackTrace();
       }
     }
 
