@@ -6,7 +6,6 @@ import qr_proto.qr.QRCode;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 
 public class QRProtoPanel extends JPanel {
@@ -41,8 +40,13 @@ public class QRProtoPanel extends JPanel {
       case ERR:
         color = new Color(198, 49, 0);
         break;
+      case SYN:
+      case SCK:
+      case FIN:
+        color = new Color(51, 146, 198);
+        break;
       default:
-        color = Color.LIGHT_GRAY;
+        color = new Color(183, 200, 226);
     }
     qrCodeGraphics.setColor(color);
     qrCodeGraphics.setStroke(new BasicStroke(10));

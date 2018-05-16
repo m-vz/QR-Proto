@@ -327,9 +327,14 @@ public class QRProtoSocket {
 
           LuminanceSource source = new BufferedImageLuminanceSource(image);
           BinaryBitmap bitmap = new BinaryBitmap(new HybridBinarizer(source));
+          Map<DecodeHintType, Object> hintMap = new EnumMap<>(DecodeHintType.class);
+          // hintMap.put(DecodeHintType.PURE_BARCODE, Boolean.TRUE);
+          hintMap.put(DecodeHintType.POSSIBLE_FORMATS, Collections.singletonList(BarcodeFormat.QR_CODE));
+          hintMap.put(DecodeHintType.TRY_HARDER, Boolean.TRUE);
+          hintMap.put(DecodeHintType.CHARACTER_SET, QRCode.CHARACTER_SET);
 
           try {
-            result = new MultiFormatReader().decode(bitmap);
+            result = new MultiFormatReader().decode(bitmap, hintMap);
           } catch (NotFoundException e) {
             // no qr code found
           }

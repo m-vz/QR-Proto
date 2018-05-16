@@ -16,11 +16,12 @@ import java.util.Map;
 
 public class QRCode {
   public static final int METADATA_LENGTH = 8 + 4; // header length + checksum length
+  public static final String CHARACTER_SET = "UTF-8";
 
   private static QRCodeWriter qrCodeWriter = new QRCodeWriter();
   private static Map<EncodeHintType, Object> hintMap = new EnumMap<>(EncodeHintType.class);
   static {
-    hintMap.put(EncodeHintType.CHARACTER_SET, "UTF-8");
+    hintMap.put(EncodeHintType.CHARACTER_SET, CHARACTER_SET);
     hintMap.put(EncodeHintType.MARGIN, 2); // defaults to 4
     hintMap.put(EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.L);
   }
@@ -68,8 +69,6 @@ public class QRCode {
   }
 
   public BitMatrix generateBitMatrix() {
-    // TODO: throw if sequence number is -1
-
     StringBuilder qrMessage = new StringBuilder();
 
     ByteBuffer header = ByteBuffer.allocate(6);
