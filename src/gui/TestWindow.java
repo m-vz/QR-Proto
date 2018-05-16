@@ -188,7 +188,7 @@ public class TestWindow extends JFrame {
       testButton = new JButton(new AbstractAction("test") {
         @Override
         public void actionPerformed(ActionEvent e) {
-          int size = 2000;
+          int size = 10000;
           new Thread(new Runnable() {
             private int numErrors = 0, timesSent = 0;
 
@@ -204,16 +204,16 @@ public class TestWindow extends JFrame {
                 @Override
                 public void actionPerformed(ActionEvent e) {
                   long roundTripTime = Profiler.endMeasurement("rtt");
-                  float bytesPerSecond = size/(Math.max((float) roundTripTime, 1)/1000);
-                  float maxBytesPerSecond = 1000f/DISPLAY_TIME*MAX_BUFFER_SIZE;
-                  float efficiency = bytesPerSecond/maxBytesPerSecond;
-                  Profiler.profileData("bps", bytesPerSecond);
+                  float bitsPerSecond = size*8/(Math.max((float) roundTripTime, 1)/1000);
+                  float maxBitsPerSecond = size*8/(DISPLAY_TIME/1000f);
+                  float efficiency = bitsPerSecond/maxBitsPerSecond;
+                  Profiler.profileData("bps", bitsPerSecond);
                   Profiler.profileData("err", numErrors);
                   Profiler.profileData("eff", efficiency);
                   Profiler.writeProfiledData();
                   profilerPanel.addToData(
                       new AbstractMap.SimpleEntry<>("round trip time", (float) roundTripTime),
-                      new AbstractMap.SimpleEntry<>("bits per second", bytesPerSecond),
+                      new AbstractMap.SimpleEntry<>("bits per second", bitsPerSecond),
                       new AbstractMap.SimpleEntry<>("errors per msg", (float) numErrors),
                       new AbstractMap.SimpleEntry<>("efficiency", efficiency)
                   );
