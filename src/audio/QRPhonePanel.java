@@ -8,7 +8,7 @@ public class QRPhonePanel extends JPanel {
   private JButton startSendingButton, startReceivingButton, stopSendingButton, stopReceivingButton, resetButton;
   private JPanel startPanel, stopPanel, controlPanel;
 
-  public QRPhonePanel(QRPhone phone) {
+  QRPhonePanel(QRPhone phone) {
     setLayout(new BorderLayout());
 
     startPanel = new JPanel(new FlowLayout());
@@ -18,7 +18,7 @@ public class QRPhonePanel extends JPanel {
     startSendingButton = new JButton(new AbstractAction("start sending") {
       @Override
       public void actionPerformed(ActionEvent e) {
-        phone.startSending();
+        phone.startRecorder();
         startSendingButton.setEnabled(false);
         stopSendingButton.setEnabled(true);
       }
@@ -26,7 +26,7 @@ public class QRPhonePanel extends JPanel {
     startReceivingButton = new JButton(new AbstractAction("start receiving") {
       @Override
       public void actionPerformed(ActionEvent e) {
-        phone.startReceiving();
+        phone.startPlayer();
         startReceivingButton.setEnabled(false);
         stopReceivingButton.setEnabled(true);
       }
@@ -34,26 +34,24 @@ public class QRPhonePanel extends JPanel {
     stopSendingButton = new JButton(new AbstractAction("stop sending") {
       @Override
       public void actionPerformed(ActionEvent e) {
-        phone.stopRecording();
+        phone.stopRecorder(false);
         stopSendingButton.setEnabled(false);
-        startSendingButton.setEnabled(true);
       }
     });
     stopSendingButton.setEnabled(false);
     stopReceivingButton = new JButton(new AbstractAction("stop receiving") {
       @Override
       public void actionPerformed(ActionEvent e) {
-        phone.stopPlayback();
+        phone.stopPlayer(false);
         stopReceivingButton.setEnabled(false);
-        startReceivingButton.setEnabled(true);
       }
     });
     stopReceivingButton.setEnabled(false);
     resetButton = new JButton(new AbstractAction("reset phone") {
       @Override
       public void actionPerformed(ActionEvent e) {
-        phone.stopRecording();
-        phone.stopPlayback();
+        phone.stopRecorder(true);
+        phone.stopPlayer(true);
         startSendingButton.setEnabled(true);
         startReceivingButton.setEnabled(true);
         stopSendingButton.setEnabled(false);
@@ -70,6 +68,14 @@ public class QRPhonePanel extends JPanel {
     controlPanel.add(resetButton, BorderLayout.PAGE_END);
     add(phoneHeading, BorderLayout.PAGE_START);
     add(controlPanel, BorderLayout.CENTER);
+  }
+
+  void canSendAgain() {
+    startSendingButton.setEnabled(true);
+  }
+
+  void canReceiveAgain() {
+    startReceivingButton.setEnabled(true);
   }
 
   @Override

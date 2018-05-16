@@ -16,7 +16,6 @@ import java.awt.event.ActionEvent;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
 import java.util.AbstractMap;
-import java.util.Random;
 
 import static qr_proto.util.Config.DISPLAY_TIME;
 import static qr_proto.util.Config.MAX_BUFFER_SIZE;
@@ -52,8 +51,8 @@ public class TestWindow extends JFrame {
       public void windowClosing(WindowEvent e) {
         Log.outln("Test window closing...");
         qrProto.end();
-        qrPhone.stopRecording();
-        qrPhone.stopPlayback();
+        qrPhone.stopRecorder(true);
+        qrPhone.stopPlayer(true);
       }
 
       @Override
@@ -262,8 +261,8 @@ public class TestWindow extends JFrame {
         public void actionPerformed(ActionEvent e) {
           resetButton.setEnabled(false);
           qrProto.reset();
-          qrPhone.stopRecording();
-          qrPhone.stopPlayback();
+          qrPhone.stopRecorder(true);
+          qrPhone.stopPlayer(true);
           connectButton.setEnabled(true);
           disconnectButton.setEnabled(false);
           resetButton.setEnabled(true);
