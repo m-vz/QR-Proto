@@ -205,7 +205,7 @@ public class TestWindow extends JFrame {
                 public void actionPerformed(ActionEvent e) {
                   long roundTripTime = Profiler.endMeasurement("rtt");
                   float bitsPerSecond = size*8/(Math.max((float) roundTripTime, 1)/1000);
-                  float maxBitsPerSecond = size*8/(DISPLAY_TIME/1000f);
+                  float maxBitsPerSecond = size*8/(MAX_BUFFER_SIZE/(DISPLAY_TIME/1000f));
                   float efficiency = bitsPerSecond/maxBitsPerSecond;
                   Profiler.profileData("bps", bitsPerSecond);
                   Profiler.profileData("err", numErrors);
